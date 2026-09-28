@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 
 type Book = {
   id: number;
@@ -10,6 +10,7 @@ type Book = {
 
 export default async function BooksPage() {
   await connection();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("books")
     .select("id, title, author, year")
