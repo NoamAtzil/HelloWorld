@@ -20,7 +20,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   return (
     <form action={formAction} className="flex flex-col gap-4">
       {isIncomplete && (
-        <p className="rounded bg-amber-50 p-3 text-sm text-amber-900">
+        <p className="rounded-xl bg-tint p-3 text-sm text-accent-text">
           Please add your first and last name to finish setting up your
           account.
         </p>
@@ -31,7 +31,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         <img
           src={profile.avatar_url}
           alt="Profile photo"
-          className="h-20 w-20 rounded-full object-cover"
+          className="h-20 w-20 rounded-full object-cover ring-2 ring-glow ring-offset-2 ring-offset-surface"
         />
       )}
 
@@ -44,7 +44,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           name="first_name"
           defaultValue={profile.first_name ?? ""}
           required
-          className="rounded border border-black/10 px-3 py-2"
+          className="field"
         />
       </div>
 
@@ -57,7 +57,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           name="last_name"
           defaultValue={profile.last_name ?? ""}
           required
-          className="rounded border border-black/10 px-3 py-2"
+          className="field"
         />
       </div>
 
@@ -70,16 +70,16 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           name="avatar"
           type="file"
           accept="image/*"
-          className="text-sm"
+          className="text-sm file:mr-3 file:rounded-full file:border-0 file:bg-tint file:px-4 file:py-2 file:text-sm file:font-medium file:text-accent-text"
         />
       </div>
 
-      {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state?.error && <p role="alert" className="rounded-xl bg-coral-tint px-3 py-2 text-sm text-coral-text">{state.error}</p>}
 
       <button
         type="submit"
         disabled={pending}
-        className="rounded border border-black/10 px-4 py-2 text-sm font-medium hover:bg-black/5 disabled:opacity-50"
+        className="btn-primary press"
       >
         {pending ? "Saving…" : "Save"}
       </button>

@@ -33,11 +33,11 @@ export function GoogleSignInButton() {
         type="button"
         onClick={handleSignIn}
         disabled={isLoading}
-        className="rounded border border-black/10 px-4 py-2 text-sm font-medium hover:bg-black/5 disabled:opacity-50"
+        className="btn-primary press"
       >
         {isLoading ? "Redirecting…" : "Continue with Google"}
       </button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" className="rounded-xl bg-coral-tint px-3 py-2 text-sm text-coral-text">{error}</p>}
     </div>
   );
 }

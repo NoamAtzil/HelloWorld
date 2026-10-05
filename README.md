@@ -1,5 +1,35 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Assignment #4: photo → AI caption → feed → vote
+
+Signed-in users upload a photo, Gemini (server-side, image attached) writes a
+funny caption, and the post (photo, instruction, caption, model) is saved and
+shown in `/feed`, where signed-in users up/downvote it and delete their own.
+
+### Environment (`.env.local`, see `.env.example`)
+
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `GEMINI_API_KEY`
+(server-only; never exposed to the browser).
+
+### Database setup: run these in the Supabase SQL editor, in this order
+
+1. `supabase/schema.sql`: `books`, `profiles` (+ signup trigger), the `avatars`
+   bucket, and the first version of `generations`, `votes` and
+   `feed_generations()`, all with RLS enabled.
+2. `supabase/migrations/002_photo_captions.sql`: adds `image_path` / `model` to
+   `generations`, the private `post-images` bucket and its Storage policies,
+   the final `feed_generations()`, and the `books` policy fix for signed-in
+   users. On a fresh project there are no old rows, so also run the commented
+   PART 3 statements at the bottom of the file (`set not null`).
+3. `supabase/migrations/003_delete_own_posts.sql`: lets users delete only their
+   own generations and their own `post-images` files (votes cascade).
+
+The final state after step 3 is the one the app expects. RLS is enabled on
+every table (`books`, `profiles`, `generations`, `votes`); users can only read
+or change their own `profiles`, `generations` (insert/delete) and `votes`.
+The shared feed and vote totals come from the `SECURITY DEFINER` function
+`feed_generations()`, which only returns data to signed-in users.
+
 ## Getting Started
 
 First, run the development server:

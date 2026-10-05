@@ -17,7 +17,7 @@ export function LogoutButton() {
     <button
       type="button"
       onClick={handleSignOut}
-      className="text-sm font-medium underline underline-offset-2"
+      className="btn-quiet shrink-0"
     >
       Sign out
     </button>

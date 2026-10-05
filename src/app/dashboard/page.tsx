@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "@/components/logout-button";
@@ -22,15 +23,22 @@ export default async function DashboardPage() {
   }
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-4 p-8">
-      <h1 className="text-2xl font-semibold">
-        Welcome, {profile.first_name}
-      </h1>
-      <p className="text-sm text-zinc-600">
-        This is a protected page — it only renders for a signed-in user with
-        a valid server-side session.
-      </p>
-      <LogoutButton />
+    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-4 py-10">
+      <div className="flex flex-col gap-4 rounded-3xl border border-line bg-surface p-6 shadow-card">
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Welcome, {profile.first_name}
+        </h1>
+        <p className="text-sm text-muted">
+          This is a protected page — it only renders for a signed-in user with
+          a valid server-side session.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href="/feed" className="btn-primary press">
+            Open the feed
+          </Link>
+          <LogoutButton />
+        </div>
+      </div>
     </main>
   );
 }

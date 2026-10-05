@@ -42,3 +42,6 @@ next-env.d.ts
 
 # keep the env template
 !.env.example
+
+# local MCP config (contains an API key)
+.mcp.json

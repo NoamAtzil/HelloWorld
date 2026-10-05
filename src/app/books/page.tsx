@@ -18,17 +18,21 @@ export default async function BooksPage() {
     .overrideTypes<Book[], { merge: false }>();
 
   if (error) {
-    return <p>Failed to load books: {error.message}</p>;
+    return (
+      <p role="alert" className="mx-auto mt-10 max-w-xl rounded-xl bg-coral-tint px-4 py-3 text-sm text-coral-text">
+        Failed to load books: {error.message}
+      </p>
+    );
   }
 
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-6 text-2xl font-semibold">Books</h1>
+    <main className="mx-auto w-full max-w-xl flex-1 px-4 py-10">
+      <h1 className="mb-6 text-3xl font-semibold tracking-tight">Books</h1>
       <ul className="space-y-3">
         {data.map((book) => (
-          <li key={book.id} className="rounded border border-black/10 p-4">
+          <li key={book.id} className="rounded-2xl border border-line bg-surface p-4 shadow-card">
             <p className="font-medium">{book.title}</p>
-            <p className="text-sm text-zinc-600">
+            <p className="text-sm text-muted">
               {book.author}
               {book.year ? ` · ${book.year}` : ""}
             </p>
