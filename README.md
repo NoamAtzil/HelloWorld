@@ -6,6 +6,16 @@ Signed-in users upload a photo, Gemini (server-side, image attached) writes a
 funny caption, and the post (photo, instruction, caption, model) is saved and
 shown in `/feed`, where signed-in users up/downvote it and delete their own.
 
+### Image library ("Choose a photo")
+
+Curated pictures live in `public/library/` (JPEG, PNG or WebP, ideally ~800 px
+wide and under 300 KB; use only images you have the rights to). File names
+become the titles, e.g. `dinosaur-waiting-for-the-subway.jpg` becomes
+"Dinosaur waiting for the subway". `npm run dev` / `npm run build` regenerate
+`src/lib/image-library.json` automatically (or run `npm run library`). With no
+images the "Choose a photo" option stays hidden. A chosen image is submitted
+through the normal upload pipeline, so each post gets its own private copy.
+
 ### Environment (`.env.local`, see `.env.example`)
 
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `GEMINI_API_KEY`

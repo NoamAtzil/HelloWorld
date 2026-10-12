@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "predev": "npm run library",
     "build": "next build",
+    "prebuild": "npm run library",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "library": "node scripts/build-image-library.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.27.0",

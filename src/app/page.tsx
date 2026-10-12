@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { SCENES } from "./demo/scenes";
+
+// The landing page shows the first demo scene as a static example post.
+const example = SCENES[0];
 
 export default async function Home() {
   const supabase = await createClient();
@@ -18,13 +22,21 @@ export default async function Home() {
           Upload a photo, get a funny AI caption, then let the feed vote on
           whether it landed.
         </p>
-        <div>
-          <Link
-            href={signedIn ? "/feed" : "/login"}
-            className="btn-primary press"
-          >
-            {signedIn ? "Open the feed" : "Sign in to start"}
-          </Link>
+        <div className="flex flex-wrap gap-3">
+          {signedIn ? (
+            <Link href="/feed" className="btn-primary press">
+              Open the feed
+            </Link>
+          ) : (
+            <>
+              <Link href="/demo" className="btn-primary press">
+                Try the demo
+              </Link>
+              <Link href="/login" className="btn-quiet press">
+                Sign in
+              </Link>
+            </>
+          )}
         </div>
       </section>
 
@@ -35,20 +47,18 @@ export default async function Home() {
         </p>
         <div aria-hidden="true">
           <div className="relative overflow-hidden rounded-[22px] bg-tint-2 shadow-card">
-            <div className="aspect-[4/3] bg-gradient-to-br from-tint-2 via-tint to-glow/40">
-              <svg viewBox="0 0 400 300" className="h-full w-full" fill="none">
-                <circle cx="290" cy="95" r="34" className="fill-glow/70" />
-                <path
-                  d="M0 240 L110 150 L190 215 L265 160 L400 250 V300 H0Z"
-                  className="fill-accent/35"
-                />
-              </svg>
-            </div>
+            <svg
+              viewBox="0 0 400 300"
+              preserveAspectRatio="xMidYMid slice"
+              className="aspect-[4/3] w-full"
+            >
+              {example.art}
+            </svg>
             <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/35 to-transparent" />
           </div>
           <div className="bend-plate relative z-[1] mx-3 -mt-10 border border-glow/30 bg-tint px-5 pb-6 pt-4 pr-12 shadow-card">
             <p className="text-xl font-semibold leading-snug tracking-tight sm:text-2xl">
-              Nature, but make it a screensaver.
+              {example.caption}
             </p>
           </div>
         </div>

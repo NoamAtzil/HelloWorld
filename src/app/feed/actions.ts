@@ -13,6 +13,13 @@ import { createClient } from "@/lib/supabase/server";
 
 export type GenerateFormState = { error?: string; ok?: boolean } | undefined;
 
+// Result of vote / delete actions: a short, friendly message on failure.
+// Raw database errors are only logged on the server.
+export type ActionResult = { error?: string };
+
+const VOTE_ERROR = "Couldn't save your vote. Please try again.";
+const DELETE_ERROR = "Couldn't delete that post. Refresh and try again.";
+
 const MODEL = "gemini-flash-latest";
 const DEFAULT_INSTRUCTION = "Write a funny caption for this photo.";
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -146,13 +153,15 @@ export async function generateCaption(
   return { ok: true };
 }
 
-export async function setVote(formData: FormData) {
+export async function setVote(formData: FormData): Promise<ActionResult> {
   const { supabase, userId } = await requireUserId();
 
   const generationId = Number(formData.get("generation_id"));
   const value = Number(formData.get("value"));
-  if (!Number.isInteger(generationId) || generationId < 1) return;
-  if (value !== 1 && value !== -1) return;
+  if (!Number.isInteger(generationId) || generationId < 1) {
+    return { error: VOTE_ERROR };
+  }
+  if (value !== 1 && value !== -1) return { error: VOTE_ERROR };
 
   // One vote per user per post (unique user_id + generation_id in the DB):
   // no vote -> insert, same arrow again -> remove, other arrow -> switch.
@@ -165,7 +174,7 @@ export async function setVote(formData: FormData) {
 
   if (readError) {
     console.error("Reading vote failed:", readError);
-    return;
+    return { error: VOTE_ERROR };
   }
 
   let writeError;
@@ -191,14 +200,18 @@ export async function setVote(formData: FormData) {
     console.error("Saving vote failed:", writeError);
   }
 
+  // Refresh either way so the feed always shows what is really saved.
   revalidatePath("/feed");
+  return writeError ? { error: VOTE_ERROR } : {};
 }
 
-export async function deletePost(formData: FormData) {
+export async function deletePost(formData: FormData): Promise<ActionResult> {
   const { supabase, userId } = await requireUserId();
 
   const generationId = Number(formData.get("generation_id"));
-  if (!Number.isInteger(generationId) || generationId < 1) return;
+  if (!Number.isInteger(generationId) || generationId < 1) {
+    return { error: DELETE_ERROR };
+  }
 
   // RLS only lets a user delete their own rows; the user_id filter is a
   // second guard. Votes go with the row via the foreign-key cascade.
@@ -211,7 +224,14 @@ export async function deletePost(formData: FormData) {
 
   if (error) {
     console.error("Deleting generation failed:", error);
-    return;
+    return { error: DELETE_ERROR };
+  }
+
+  // Nothing was deleted (RLS hid the row, or it is already gone): the post is
+  // still there for this user, so report it instead of pretending it worked.
+  if (!deleted || deleted.length === 0) {
+    revalidatePath("/feed");
+    return { error: DELETE_ERROR };
   }
 
   // Remove the photo too (Storage policy: own folder only).
@@ -226,4 +246,5 @@ export async function deletePost(formData: FormData) {
   }
 
   revalidatePath("/feed");
+  return {};
 }

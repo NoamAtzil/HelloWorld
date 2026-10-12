@@ -12,7 +12,10 @@ export function NavLinks({ signedIn }: { signedIn: boolean }) {
         { href: "/dashboard", label: "Dashboard" },
         { href: "/profile", label: "Profile" },
       ]
-    : [{ href: "/books", label: "Books" }];
+    : [
+        { href: "/demo", label: "Demo" },
+        { href: "/books", label: "Books" },
+      ];
 
   return (
     <ul className="no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
