@@ -367,6 +367,87 @@ h2,
   transform-origin: 0 100%;
 }
 
+/* ---- Photos -------------------------------------------------------------- */
+/*
+  One sizing system for every content photo (see components/photo.tsx).
+  Height is capped by a per-page preset AND by the viewport, the whole photo is
+  always visible (contain), and nothing is ever stretched or cropped.
+*/
+.photo-frame {
+  --photo-max: 380px;
+  --photo-h: min(var(--photo-max), 62svh);
+  position: relative;
+  display: grid;
+  place-items: center;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 22px;
+  background: var(--tint-2);
+  box-shadow: var(--shadow), 0 0 0 1px rgb(0 0 0 / 0.05);
+}
+.photo-studio { --photo-max: 400px; }
+.photo-drop { --photo-max: 350px; }
+.photo-arena { --photo-max: 320px; }
+.photo-feed { --photo-max: 380px; }
+
+/* Soft blurred copy of the photo behind it, so the side bars look intentional.
+   Static and small in number (only the big hero photos use it). */
+.photo-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  background-image: var(--photo-src);
+  background-size: cover;
+  background-position: center;
+  filter: blur(24px) saturate(1.25);
+  opacity: 0.55;
+}
+
+.photo-frame > .photo-img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: var(--photo-h);
+  object-fit: contain;
+}
+.photo-empty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 9rem;
+  padding: 1rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+/* Same frame height whatever the photo's shape (Studio: no jumping while you
+   shuffle between landscape and portrait photos). */
+.photo-fixed {
+  height: min(var(--photo-h), 78vw);
+}
+.photo-fixed > .photo-img {
+  height: 100%;
+  max-height: none;
+}
+
+/* Small fixed cards: 4:3 frame, whole photo visible. */
+.photo-thumb {
+  aspect-ratio: 4 / 3;
+  border-radius: 20px;
+}
+.photo-thumb > .photo-img {
+  height: 100%;
+  max-height: none;
+}
+
+@media (max-width: 640px) {
+  .photo-frame {
+    border-radius: 18px;
+  }
+}
+
 /* ---- Studio / Arena motion ---------------------------------------------- */
 
 /* A new caption settles onto the plate. */
@@ -495,6 +576,7 @@ h2,
   display: block;
   width: 100%;
   aspect-ratio: 4 / 3;
+  max-height: min(320px, 34svh);
   object-fit: cover;
 }
 .story-plate {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { Photo } from "@/components/photo";
 import { Studio } from "@/components/studio";
 import { WinnerCard } from "@/components/winner-card";
 import { dropDate, formatDropDate, shiftDate } from "@/lib/drop";
@@ -92,8 +93,7 @@ export default async function DropPage() {
         />
       ) : (
         <div className="glass glass-lit flex flex-col gap-4 rounded-[28px] p-4 sm:p-5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={libraryUrl(challenge.item.file)} alt={challenge.item.title} className="aspect-[4/3] w-full rounded-[20px] object-cover" />
+          <Photo src={libraryUrl(challenge.item.file)} alt={challenge.item.title} size="drop" loading="eager" scrim={false} />
           <p className="text-sm text-muted">
             {entryCount ? `${entryCount} ${entryCount === 1 ? "caption" : "captions"} so far today. ` : "Be the first to caption it. "}
             Sign in to enter, vote and see the entries.

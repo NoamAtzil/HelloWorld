@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { Photo } from "@/components/photo";
 import { Story } from "@/components/story";
 import { Studio } from "@/components/studio";
 import { dropDate, formatDropDate } from "@/lib/drop";
@@ -99,16 +100,7 @@ export default async function Home() {
             {wall.map((post, index) => (
               <li key={post.id} className="reveal w-[78%] shrink-0 snap-start sm:w-72" style={{ "--i": index } as React.CSSProperties}>
                 <Link href={`/c/${post.id}`} className="lift group block">
-                  <div className="overflow-hidden rounded-[20px] bg-tint-2 shadow-card ring-1 ring-black/5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={sharedImageUrl(post.image_path)}
-                      alt={post.content}
-                      loading="lazy"
-                      decoding="async"
-                      className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  </div>
+                  <Photo src={sharedImageUrl(post.image_path)} alt={post.content} size="thumb" scrim={false} />
                   <div className="bend-plate plate-glass relative z-[1] mx-2 -mt-8 px-4 pb-5 pt-3 pr-10">
                     <p className="line-clamp-3 text-base font-semibold leading-snug tracking-tight">{post.content}</p>
                   </div>
@@ -134,14 +126,7 @@ export default async function Home() {
 
       <section aria-labelledby="drop-title" className="glass glass-lit reveal grid items-center gap-6 overflow-hidden rounded-[32px] p-5 sm:grid-cols-[1fr_1.1fr] sm:p-8">
         {challenge.item && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={libraryUrl(challenge.item.file)}
-            alt={challenge.item.title}
-            loading="lazy"
-            decoding="async"
-            className="aspect-[4/3] w-full rounded-[22px] object-cover ring-1 ring-black/5"
-          />
+          <Photo src={libraryUrl(challenge.item.file)} alt={challenge.item.title} size="drop" scrim={false} />
         )}
         <div className="flex flex-col gap-3">
           <p className="text-sm font-semibold text-accent-text">{formatDropDate(challenge.date)}</p>

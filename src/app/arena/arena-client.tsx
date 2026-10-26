@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
+import { Photo } from "@/components/photo";
 import { voiceLabel } from "@/lib/voices";
 import { castDuelVote, nextPair } from "./actions";
 import type { ArenaPair, ArenaReveal, ArenaSide } from "./pair";
@@ -82,10 +83,7 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
   return (
     <div className="flex flex-col gap-5">
       {pair.sameImage && sides[0].imageUrl && (
-        <div className="relative overflow-hidden rounded-[22px] bg-tint-2 shadow-card ring-1 ring-black/5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={sides[0].imageUrl} alt="The photo both captions are about" className="max-h-[26rem] w-full object-cover" />
-        </div>
+        <Photo src={sides[0].imageUrl} alt="The photo both captions are about" size="arena" loading="eager" scrim={false} />
       )}
 
       <div role="group" aria-label="Choose the funnier caption" className="grid gap-4 sm:grid-cols-2">
@@ -97,8 +95,7 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
           return (
             <div key={side.id} className="flex flex-col gap-2">
               {!pair.sameImage && side.imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={side.imageUrl} alt="" className="aspect-[4/3] w-full rounded-[18px] object-cover ring-1 ring-black/5" />
+                <Photo src={side.imageUrl} alt="" size="arena" loading="eager" scrim={false} />
               )}
               <button
                 type="button"

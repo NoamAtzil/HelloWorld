@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { generateTakes, publishCaption, remixCaption } from "@/app/studio/actions";
 import { dataUrlToFile, downscale, fileToDataUrl } from "@/lib/image-client";
 import { LIBRARY, libraryUrl, type LibraryItem } from "@/lib/library";
+import { Photo } from "@/components/photo";
 import { downloadCard } from "@/lib/share-card";
 import type { PublishResult, RemixResult, TakesResult } from "@/lib/studio-types";
 import {
@@ -412,28 +413,15 @@ export function Studio({
 
       {/* PHOTO + the AI plate */}
       <div>
-        <div
-          className={`relative overflow-hidden rounded-[22px] bg-tint-2 ring-1 ring-black/5 ${
-            generating ? "is-bending" : ""
-          }`}
-        >
-          {previewSrc ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={previewSrc}
-              alt={previewAlt}
-              className="aspect-[4/3] max-h-[26rem] w-full object-cover"
-            />
-          ) : (
-            <div className="grid aspect-[4/3] place-items-center text-sm text-muted">
-              Choose a photo below
-            </div>
-          )}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/35 to-transparent"
-          />
-        </div>
+        <Photo
+          src={previewSrc}
+          alt={previewAlt}
+          size={challenge ? "drop" : "studio"}
+          fixed
+          loading="eager"
+          fallback="Choose a photo below"
+          className={generating ? "is-bending" : ""}
+        />
         <div
           className={`bend-plate plate-glass relative z-[1] mx-3 -mt-10 px-5 pb-6 pt-4 pr-12 ${
             current ? "" : "border-dashed"

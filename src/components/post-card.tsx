@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatDropDate } from "@/lib/drop";
 import { downloadCard } from "@/lib/share-card";
+import { Photo } from "@/components/photo";
 import { voiceLabel } from "@/lib/voices";
 import type { FeedPost } from "@/app/feed/sort";
 
@@ -57,23 +58,7 @@ export function PostCard({
   return (
     <article id={`post-${post.id}`} tabIndex={-1} className="scroll-mt-24 outline-none">
       {/* PHOTO: reality, the hero. Exact corners. */}
-      <div className="relative overflow-hidden rounded-[22px] bg-tint-2 shadow-card ring-1 ring-black/5">
-        {post.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={post.imageUrl}
-            alt={post.content}
-            loading="lazy"
-            decoding="async"
-            className="max-h-[34rem] w-full object-cover"
-          />
-        ) : (
-          <div className="grid aspect-[4/3] place-items-center text-sm text-muted">Photo unavailable</div>
-        )}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/35 to-transparent"
-        />
+      <Photo src={post.imageUrl} alt={post.content} size="feed">
         {onDelete &&
           post.mine &&
           (confirming ? (
@@ -114,7 +99,7 @@ export function PostCard({
               </svg>
             </button>
           ))}
-      </div>
+      </Photo>
 
       {/* CAPTION: the AI's twist. The one permanent bend, in frosted glass. */}
       <div className="bend-plate plate-glass relative z-[1] mx-3 -mt-10 px-5 pb-6 pt-4 pr-12">
