@@ -9,6 +9,10 @@ export type FeedPost = {
   score: number;
   myVote: number | null;
   mine: boolean;
+  voice: string | null;
+  isPublic: boolean;
+  dropDate: string | null;
+  author: string | null;
 };
 
 export function parseSort(value: string | string[] | undefined): FeedSort {

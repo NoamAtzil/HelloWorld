@@ -31,7 +31,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         <img
           src={profile.avatar_url}
           alt="Profile photo"
-          className="h-20 w-20 rounded-full object-cover ring-2 ring-glow ring-offset-2 ring-offset-surface"
+          className="h-20 w-20 rounded-full object-cover ring-2 ring-glow ring-offset-2 ring-offset-bg"
         />
       )}
 

@@ -9,7 +9,7 @@ export function Wordmark() {
     <Link
       href="/"
       aria-label={`${BRAND.before}${BRAND.bent}${BRAND.after} home`}
-      className="shrink-0 text-xl font-semibold tracking-tight text-ink"
+      className="font-display shrink-0 text-xl font-bold tracking-tight text-ink"
     >
       {BRAND.before}
       <span className="wordmark-bend" aria-hidden="true">

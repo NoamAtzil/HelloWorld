@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
@@ -17,6 +17,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Display face for headings and the wordmark. Variable, so one file covers
+// every weight.
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "caption — photos in, funny captions out",
   description:
@@ -31,13 +38,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <header className="sticky top-0 z-20 border-b border-line bg-bg">
+        <header className="sticky top-0 z-20 px-3 pt-3">
           <nav
             aria-label="Main"
-            className="mx-auto flex h-14 w-full max-w-3xl items-center gap-3 px-4"
+            className="glass mx-auto flex h-14 w-full max-w-4xl items-center gap-3 rounded-full pl-5 pr-2"
           >
             <Wordmark />
             <NavLinks signedIn={!!claims} />

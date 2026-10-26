@@ -9,7 +9,8 @@
     "prebuild": "npm run library",
     "start": "next start",
     "lint": "eslint",
-    "library": "node scripts/build-image-library.mjs"
+    "library": "node scripts/build-image-library.mjs",
+    "test": "tsc -p tsconfig.test.json && node --test .test-build/tests/"
   },
   "dependencies": {
     "@google/genai": "^2.27.0",

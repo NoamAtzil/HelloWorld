@@ -42,7 +42,7 @@ export async function updateSession(request: NextRequest) {
   if (!data?.claims && (pathname === "/feed" || pathname.startsWith("/feed/"))) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.search = "";
+    url.search = `?next=${encodeURIComponent(pathname)}`;
     const redirect = NextResponse.redirect(url);
     // Keep any cookies the session refresh just set.
     supabaseResponse.cookies

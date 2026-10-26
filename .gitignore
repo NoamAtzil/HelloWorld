@@ -45,3 +45,4 @@ next-env.d.ts
 
 # local MCP config (contains an API key)
 .mcp.json
+.test-build

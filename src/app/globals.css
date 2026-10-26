@@ -1,10 +1,14 @@
 @import "tailwindcss";
 
 /*
-  Design system
-  -------------
+  Design system: Orange Glass
+  ---------------------------
+  Shared with the admin app (keep the token block below in sync with
+  HelloWorld-Admin/src/app/globals.css).
+
   Rule: what the user supplies is precise; what the AI returns is bent.
-  Orange is the identity; cream and warm ink give it room.
+  Orange is the identity, warm cream gives it room, and glass (a soft blur
+  with a luminous edge) is used for surfaces that float above the page.
 
   Distortion vocabulary (all one idea: stretch sideways, sag toward the
   bottom-right, then return to exact):
@@ -12,14 +16,22 @@
     B. .wordmark-bend   one stretched letter in the brand
     C. .is-bending      the photo -> caption transformation (composer, pending)
     D. .press           temporary squash on Generate / vote presses
+
+  Glass rules: blur is small (12-16px) and only on a few large surfaces, never
+  stacked; every glass surface has a solid fallback; text never depends on the
+  blur (fills are 66%+ opaque, the caption plate 86%).
 */
 
 :root {
-  --bg: #fbf7f2;
-  --surface: #ffffff;
+  --bg: #fff7ee;
+  --bg-deep: #ffe9d6;
+  --surface: rgb(255 255 255 / 0.66); /* glass fill */
+  --surface-strong: rgb(255 255 255 / 0.86);
+  --surface-solid: #ffffff;
   --ink: #1f1712;
   --muted: #6b5b4e;
   --line: rgb(31 23 18 / 0.12);
+  --glass-edge: rgb(255 255 255 / 0.75); /* luminous border */
 
   --accent: #c2410c; /* fills that carry white text */
   --accent-hover: #9a3412;
@@ -28,22 +40,33 @@
   --glow: #ff7a1a; /* signature orange: non-text accents only */
   --tint: #fff0e3;
   --tint-2: #ffe0c7;
+  --plate: rgb(255 240 227 / 0.86); /* caption plate over a photo */
 
   --coral: #b9463b; /* muted red for a selected downvote */
   --on-coral: #ffffff;
   --coral-text: #9b3328;
   --coral-tint: #fce9e5;
 
-  --shadow: 0 1px 2px rgb(60 30 10 / 0.06), 0 12px 28px -12px rgb(60 30 10 / 0.28);
+  --ok-text: #166534;
+  --ok-tint: #e8f6ec;
+
+  --shadow: 0 1px 2px rgb(60 30 10 / 0.06), 0 14px 32px -14px rgb(60 30 10 / 0.3);
+  --shadow-glow: 0 10px 30px -10px rgb(255 122 26 / 0.55);
+  --halo-a: rgb(255 138 61 / 0.32);
+  --halo-b: rgb(255 190 140 / 0.38);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #17110c;
-    --surface: #221a14;
+    --bg-deep: #1f150d;
+    --surface: rgb(44 32 24 / 0.62);
+    --surface-strong: rgb(38 28 21 / 0.88);
+    --surface-solid: #221a14;
     --ink: #f6ede4;
     --muted: #b9a798;
     --line: rgb(255 235 220 / 0.14);
+    --glass-edge: rgb(255 235 220 / 0.16);
 
     --accent: #ff8a3d;
     --accent-hover: #ffa566;
@@ -52,19 +75,28 @@
     --glow: #ff8a3d;
     --tint: #33200f;
     --tint-2: #47290f;
+    --plate: rgb(51 32 15 / 0.88);
 
     --coral: #e58173;
     --on-coral: #1f1712;
     --coral-text: #f0a599;
     --coral-tint: #3a1e1a;
 
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 28px -12px rgb(0 0 0 / 0.7);
+    --ok-text: #86d9a0;
+    --ok-tint: #12301c;
+
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 14px 32px -14px rgb(0 0 0 / 0.75);
+    --shadow-glow: 0 10px 30px -10px rgb(255 138 61 / 0.45);
+    --halo-a: rgb(255 122 26 / 0.16);
+    --halo-b: rgb(180 80 20 / 0.2);
   }
 }
 
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-surface-solid: var(--surface-solid);
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-line: var(--line);
@@ -74,13 +106,17 @@
   --color-glow: var(--glow);
   --color-tint: var(--tint);
   --color-tint-2: var(--tint-2);
+  --color-plate: var(--plate);
   --color-coral: var(--coral);
   --color-on-coral: var(--on-coral);
   --color-coral-text: var(--coral-text);
   --color-coral-tint: var(--coral-tint);
+  --color-ok-text: var(--ok-text);
+  --color-ok-tint: var(--ok-tint);
   --shadow-card: var(--shadow);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-bricolage);
 }
 
 body {
@@ -89,9 +125,34 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+/* Static warm light behind everything: two soft orange halos. One fixed,
+   non-animated layer, so it costs nothing while scrolling. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 38rem at 88% -8%, var(--halo-a), transparent 65%),
+    radial-gradient(52rem 36rem at -6% 102%, var(--halo-b), transparent 65%);
+}
+
+h1,
+h2,
+.font-display {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.025em;
+}
+
 :focus-visible {
-  outline: 2px solid var(--glow);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+::selection {
+  background: var(--tint-2);
+  color: var(--ink);
 }
 
 .no-scrollbar {
@@ -99,6 +160,36 @@ body {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* ---- Glass surfaces ------------------------------------------------------ */
+
+.glass,
+.glass-strong {
+  background: var(--surface);
+  border: 1px solid var(--glass-edge);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    var(--shadow);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+  backdrop-filter: blur(14px) saturate(1.35);
+}
+.glass-strong {
+  background: var(--surface-strong);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-strong {
+    background: var(--surface-solid);
+  }
+}
+
+/* Soft orange light that follows a glass surface, for hero cards. */
+.glass-lit {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.4),
+    var(--shadow),
+    var(--shadow-glow);
 }
 
 /* ---- Controls: precise, never bent at rest ------------------------------ */
@@ -115,27 +206,47 @@ body {
   font-size: 0.9375rem;
   font-weight: 600;
   white-space: nowrap;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
 }
 
 .btn-primary {
-  background: var(--accent);
+  background: linear-gradient(180deg, #cc4a10, var(--accent));
   color: var(--on-accent);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    0 6px 16px -8px rgb(194 65 12 / 0.7);
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: linear-gradient(180deg, var(--accent), var(--accent-hover));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    0 8px 20px -8px rgb(194 65 12 / 0.8);
 }
 .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
+@media (prefers-color-scheme: dark) {
+  .btn-primary {
+    background: linear-gradient(180deg, #ff9a55, var(--accent));
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(180deg, var(--accent-hover), var(--accent));
+  }
+}
 
 .btn-quiet {
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-edge);
   background: var(--surface);
   color: var(--ink);
+  box-shadow: 0 1px 2px rgb(60 30 10 / 0.06);
 }
 .btn-quiet:hover {
   background: var(--tint);
+  border-color: var(--line);
 }
 
 .field {
@@ -144,8 +255,11 @@ body {
   padding: 0.625rem 0.875rem;
   border: 1px solid var(--line);
   border-radius: 0.875rem;
-  background: var(--surface);
+  background: var(--surface-strong);
   color: var(--ink);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
 }
 .field::placeholder {
   color: var(--muted);
@@ -153,6 +267,7 @@ body {
 }
 .field:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgb(255 122 26 / 0.18);
 }
 
 /* ---- D. Interaction distortion: squash on press, spring back ------------ */
@@ -175,10 +290,54 @@ body {
   animation: vote-pop 360ms ease-out;
 }
 
+/* Cards that respond to the pointer lift a little. */
+.lift {
+  transition:
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 260ms ease;
+}
+@media (hover: hover) {
+  .lift:hover {
+    transform: translateY(-3px);
+  }
+}
+
+/* Arrive softly. Stagger with style={{ "--i": n }}. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise {
+  animation: rise 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
 /* ---- A. The AI caption's shape: stretched, sagging bottom-right --------- */
 
 .bend-plate {
   border-radius: 24px 24px 104px 24px / 24px 24px 60px 24px;
+}
+
+/* The plate is frosted glass: the photo glows faintly through it. */
+.plate-glass {
+  background: var(--plate);
+  border: 1px solid rgb(255 122 26 / 0.35);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.4),
+    var(--shadow);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  backdrop-filter: blur(12px) saturate(1.3);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .plate-glass {
+    background: var(--tint);
+  }
 }
 
 /* ---- B. Brand: one stretched letter ------------------------------------- */
@@ -208,14 +367,280 @@ body {
   transform-origin: 0 100%;
 }
 
+/* ---- Studio / Arena motion ---------------------------------------------- */
+
+/* A new caption settles onto the plate. */
+@keyframes plate-in {
+  from { opacity: 0; transform: translateY(8px) scaleX(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.plate-in {
+  animation: plate-in 380ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: 0 100%;
+}
+
+/* Arena: the picked plate lifts and glows, the other recedes. */
+.arena-plate {
+  display: block;
+  width: 100%;
+  cursor: pointer;
+  transition:
+    transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 300ms ease,
+    box-shadow 300ms ease,
+    filter 300ms ease;
+}
+.arena-plate:disabled {
+  cursor: default;
+}
+@media (hover: hover) {
+  .arena-plate:not(:disabled):hover {
+    transform: translateY(-3px);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.4),
+      var(--shadow),
+      var(--shadow-glow);
+  }
+}
+.arena-plate.is-winner {
+  transform: translateY(-6px) scale(1.02);
+  border-color: var(--glow);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.4),
+    var(--shadow),
+    0 0 0 3px rgb(255 122 26 / 0.45),
+    var(--shadow-glow);
+}
+.arena-plate.is-loser {
+  opacity: 0.62;
+  transform: scale(0.97);
+  filter: saturate(0.6);
+}
+.arena-badge {
+  position: absolute;
+  right: 1.1rem;
+  top: -0.7rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 9999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  animation: badge-pop 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes badge-pop {
+  from { opacity: 0; transform: scale(0.5) rotate(-8deg); }
+  to { opacity: 1; transform: none; }
+}
+.arena-reveal {
+  animation: rise 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 120ms + 150ms);
+}
+.arena-fill {
+  animation: fill-in 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: 250ms;
+  transform-origin: 0 50%;
+}
+@keyframes fill-in {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* ---- Home: scroll-driven story ------------------------------------------- */
+/*
+  Default (no scroll-driven animation support, or reduced motion): a plain,
+  fully readable stack, every element in its final state. Browsers that support
+  animation-timeline get a pinned stage whose elements animate with scroll.
+*/
+
+.story-stage {
+  display: grid;
+  gap: 1.5rem;
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .story-stage {
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 3rem;
+  }
+}
+.story-steps {
+  display: grid;
+  gap: 1rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.story-step b {
+  display: block;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+.story-step span {
+  color: var(--muted);
+}
+.story-scene {
+  position: relative;
+  display: grid;
+  gap: 0.75rem;
+}
+.story-photo {
+  overflow: hidden;
+  border-radius: 22px;
+  background: var(--tint-2);
+  box-shadow: var(--shadow);
+}
+.story-photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+.story-plate {
+  position: relative;
+  z-index: 1;
+  margin: -2.5rem 0.75rem 0;
+  padding: 1rem 3rem 1.4rem 1.25rem;
+}
+.story-duel {
+  display: grid;
+  gap: 0.5rem;
+}
+.story-rival {
+  position: relative;
+  margin: 0 0.75rem;
+  padding: 1rem 3rem 1.4rem 1.25rem;
+}
+.story-vs {
+  justify-self: center;
+  padding: 0.15rem 0.7rem;
+  border-radius: 9999px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.story-crown {
+  position: absolute;
+  top: -0.7rem;
+  right: 1.2rem;
+  z-index: 2;
+  padding: 0.2rem 0.7rem;
+  border-radius: 9999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+@keyframes story-photo-in { from { transform: scale(1.1); filter: saturate(0.6); } to { transform: none; filter: none; } }
+@keyframes story-plate-in { from { opacity: 0; transform: translateY(70px) scaleX(0.9); } to { opacity: 1; transform: none; } }
+@keyframes story-rival-in { from { opacity: 0; transform: translateX(60px) translateY(-30px); } to { opacity: 1; transform: none; } }
+@keyframes story-vs-in { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: none; } }
+@keyframes story-crown-in { from { opacity: 0; transform: translateY(14px) scale(0.6) rotate(-10deg); } to { opacity: 1; transform: none; } }
+@keyframes story-lose { from { opacity: 1; transform: none; filter: none; } to { opacity: 0.6; transform: scale(0.97); filter: saturate(0.6); } }
+@keyframes story-step-1 { 0%, 65% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes story-step-2 { 0%, 8% { opacity: 0; } 22%, 68% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes story-step-3 { 0% { opacity: 0; } 30%, 100% { opacity: 1; } }
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .story-track {
+      view-timeline: --story block;
+      height: 320svh;
+    }
+    .story-stage {
+      position: sticky;
+      top: 0;
+      min-height: 100svh;
+      align-content: center;
+      padding-block: 5rem 1.5rem;
+    }
+    .story-steps {
+      grid-template-areas: "step";
+      min-height: 5.5rem;
+    }
+    .story-step {
+      grid-area: step;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: --story;
+    }
+    .story-step:nth-child(1) { animation-name: story-step-1; animation-range: cover 22% cover 50%; }
+    .story-step:nth-child(2) { animation-name: story-step-2; animation-range: cover 38% cover 68%; }
+    .story-step:nth-child(3) { animation-name: story-step-3; animation-range: cover 58% cover 76%; }
+
+    .story-photo,
+    .story-plate,
+    .story-rival,
+    .story-vs,
+    .story-crown {
+      animation-timing-function: ease-out;
+      animation-fill-mode: both;
+      animation-timeline: --story;
+    }
+    .story-photo { animation-name: story-photo-in; animation-range: cover 22% cover 36%; overflow: hidden; }
+    .story-plate { animation-name: story-plate-in; animation-range: cover 34% cover 50%; }
+    .story-rival { animation-name: story-rival-in; animation-range: cover 52% cover 64%; }
+    .story-vs { animation-name: story-vs-in; animation-range: cover 52% cover 60%; }
+    .story-crown { animation-name: story-crown-in; animation-range: cover 66% cover 74%; }
+    .story-rival-lose {
+      animation-name: story-rival-in, story-lose;
+      animation-range: cover 52% cover 64%, cover 66% cover 74%;
+      animation-timing-function: ease-out;
+      animation-fill-mode: both;
+      animation-timeline: --story;
+    }
+  }
+
+  /* Community and teaser cards rise into place as they enter the viewport. */
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 45%;
+    }
+    .hero-orb {
+      animation: orb-drift linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 100vh;
+    }
+  }
+}
+@keyframes orb-drift { to { transform: translateY(-80px); } }
+
+.hero-orb {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 35%, rgb(255 190 140 / 0.55), rgb(255 122 26 / 0.18) 55%, transparent 70%);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .press,
-  .press:active:not(:disabled) {
+  .press:active:not(:disabled),
+  .lift,
+  .lift:hover {
     transition: none;
     transform: none;
   }
   .vote[aria-pressed="true"] svg,
-  .is-bending {
+  .is-bending,
+  .rise,
+  .plate-in,
+  .arena-badge,
+  .arena-reveal,
+  .arena-fill {
     animation: none;
+  }
+  .arena-plate,
+  .arena-plate:not(:disabled):hover,
+  .arena-plate.is-winner,
+  .arena-plate.is-loser {
+    transition: none;
+    transform: none;
   }
 }
