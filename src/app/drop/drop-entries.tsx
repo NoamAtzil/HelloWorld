@@ -12,10 +12,10 @@ export function DropEntries({ posts }: { posts: FeedPost[] }) {
   );
   return (
     <>
-      <ol className="flex flex-col gap-12">
+      <ol className="flex flex-col gap-8">
         {ranked.map((post, index) => (
           <li key={post.id} className="flex flex-col gap-2">
-            <p className="px-1 text-sm font-semibold text-accent-text">
+            <p className="eyebrow px-1">
               {post.score > 0 && index === 0 ? "Leading right now" : `#${index + 1}`}
             </p>
             <PostCard post={post} onVote={actions.castVote} onDelete={actions.removePost} />

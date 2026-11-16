@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatDropDate } from "@/lib/drop";
 import { downloadCard } from "@/lib/share-card";
+import { Icon } from "@/components/icons";
 import { Photo } from "@/components/photo";
 import { voiceLabel } from "@/lib/voices";
 import type { FeedPost } from "@/app/feed/sort";
@@ -56,9 +57,9 @@ export function PostCard({
   }
 
   return (
-    <article id={`post-${post.id}`} tabIndex={-1} className="scroll-mt-24 outline-none">
+    <article id={`post-${post.id}`} tabIndex={-1} className="panel lift scroll-mt-24 overflow-hidden !rounded-[1.6rem] outline-none">
       {/* PHOTO: reality, the hero. Exact corners. */}
-      <Photo src={post.imageUrl} alt={post.content} size="feed">
+      <Photo src={post.imageUrl} alt={post.content} size="feed" className="!rounded-none !shadow-none">
         {onDelete &&
           post.mine &&
           (confirming ? (
@@ -101,17 +102,17 @@ export function PostCard({
           ))}
       </Photo>
 
-      {/* CAPTION: the AI's twist. The one permanent bend, in frosted glass. */}
-      <div className="bend-plate plate-glass relative z-[1] mx-3 -mt-10 px-5 pb-6 pt-4 pr-12">
-        <p className="text-xl font-semibold leading-snug tracking-tight text-ink sm:text-2xl">{post.content}</p>
+      {/* CAPTION: the AI's twist, set in the display serif on a straight plate. */}
+      <div className="plate-glass relative z-[1] mx-3 -mt-10 px-5 pb-5 pt-4">
+        <p className="caption-text text-[1.35rem] text-ink sm:text-2xl">{post.content}</p>
       </div>
 
       {/* REACTION: precise controls. */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 px-1">
+      <div className="mt-3 flex items-center justify-between gap-3 px-4">
         <div
           role="group"
           aria-label="Vote on this caption"
-          className="inline-flex shrink-0 items-center rounded-full border border-line bg-surface p-1"
+          className="inline-flex shrink-0 items-center rounded-full bg-sunken p-1 ring-1 ring-line"
         >
           <VoteButton post={post} value={1} onVote={onVote} disabled={voteLocked} />
           <span
@@ -126,46 +127,45 @@ export function PostCard({
           <VoteButton post={post} value={-1} onVote={onVote} disabled={voteLocked} />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 text-xs">
-          {voice && <span className="rounded-full bg-tint px-2.5 py-1 font-semibold text-accent-text">{voice}</span>}
-          {post.dropDate && (
-            <span className="rounded-full bg-tint px-2.5 py-1 font-semibold text-accent-text">
-              Daily Drop · {formatDropDate(post.dropDate).split(",")[1]?.trim() ?? post.dropDate}
-            </span>
-          )}
-          {post.isPublic && <span className="rounded-full border border-line px-2.5 py-1 font-medium text-muted">Shared publicly</span>}
-          {showAuthor && post.author && !post.mine && <span className="text-muted">by {post.author}</span>}
-        </div>
-
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
             onClick={() => void saveCard()}
             disabled={!post.imageUrl || working}
-            className="min-h-9 rounded-full px-3 text-sm font-medium text-muted hover:bg-ink/5 hover:text-ink disabled:opacity-50"
+            className="btn-ghost btn-sm"
             title="Download a shareable card"
           >
-            {working ? "…" : "Card"}
+            <Icon name="photo" className="h-3.5 w-3.5" /> {working ? "…" : "Card"}
           </button>
           {post.isPublic && (
-            <button
-              type="button"
-              onClick={() => void copyLink()}
-              className="min-h-9 rounded-full px-3 text-sm font-medium text-muted hover:bg-ink/5 hover:text-ink"
-            >
-              Link
+            <button type="button" onClick={() => void copyLink()} className="btn-ghost btn-sm">
+              <Icon name="copy" className="h-3.5 w-3.5" /> Link
             </button>
           )}
         </div>
       </div>
-      {extra && <p className="mt-1 px-2 text-sm font-medium text-ink">{extra}</p>}
+
+      {(voice || post.dropDate || post.isPublic || (showAuthor && post.author && !post.mine)) && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5 px-5 text-xs">
+          {voice && <span className="chip whitespace-nowrap">{voice}</span>}
+          {post.dropDate && (
+            <span className="chip whitespace-nowrap">
+              <Icon name="calendar" className="h-3 w-3" /> Daily Drop · {formatDropDate(post.dropDate).split(",")[1]?.trim() ?? post.dropDate}
+            </span>
+          )}
+          {post.isPublic && <span className="chip chip-mute whitespace-nowrap">Shared publicly</span>}
+          {showAuthor && post.author && !post.mine && <span className="text-muted">by {post.author}</span>}
+        </div>
+      )}
+      {extra && <p className="mt-2 px-5 text-sm font-medium text-ink">{extra}</p>}
       {post.direction && (
-        <p className="mt-1 truncate px-2 text-sm text-muted">Direction: {post.direction}</p>
+        <p className="mt-2 truncate px-5 text-sm text-muted">Direction: {post.direction}</p>
       )}
       <p role="status" className="sr-only">
         {status}
       </p>
-      {status && <p aria-hidden="true" className="mt-1 px-2 text-sm font-medium text-accent-text">{status}</p>}
+      {status && <p aria-hidden="true" className="mt-1 px-5 text-sm font-medium text-accent-text">{status}</p>}
+      <div className="h-4" aria-hidden="true" />
     </article>
   );
 }
@@ -196,9 +196,9 @@ function VoteButton({
         className={`vote press grid h-11 w-12 place-items-center rounded-full disabled:cursor-not-allowed disabled:opacity-40 ${
           active
             ? up
-              ? "bg-accent text-on-accent"
+              ? "bg-gradient-to-b from-[var(--btn-from)] to-accent text-on-accent shadow-[var(--shadow-glow)]"
               : "bg-coral text-on-coral"
-            : "text-muted hover:bg-ink/5 hover:text-ink"
+            : "text-muted hover:bg-tint hover:text-accent-text"
         }`}
       >
         {/* Selected = filled shape; unselected = outline (not color alone). */}

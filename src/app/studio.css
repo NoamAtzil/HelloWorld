@@ -1,0 +1,817 @@
+/*
+  Studio layer: liquid glass, the hero scene, and the Caption Creature.
+  Imported by globals.css. Component rules live in @layer components so Tailwind
+  utilities can override them.
+*/
+
+:root {
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --glass-fill: linear-gradient(135deg, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0.18));
+  --glass-fill-strong: linear-gradient(135deg, rgb(255 253 248 / 0.9), rgb(255 246 234 / 0.74));
+  --glass-border: rgb(255 255 255 / 0.62);
+  --glass-hi: rgb(255 255 255 / 0.95);
+  --glass-shadow: 0 22px 46px -22px rgb(150 60 10 / 0.5);
+  --stage-bg:
+    radial-gradient(70% 90% at 84% 8%, rgb(255 218 168 / 0.95), transparent 62%),
+    radial-gradient(60% 80% at 6% 104%, rgb(255 178 112 / 0.75), transparent 64%),
+    linear-gradient(135deg, #fff4e4, #ffdcb8 55%, #ffc386);
+  --beam: rgb(255 240 205 / 0.65);
+  --case-bg: linear-gradient(160deg, rgb(255 246 232 / 0.6), rgb(255 205 150 / 0.22));
+}
+
+:root[data-theme="dark"] {
+  --glass-fill: linear-gradient(135deg, rgb(255 240 225 / 0.17), rgb(255 240 225 / 0.05));
+  --glass-fill-strong: linear-gradient(135deg, rgb(38 30 24 / 0.9), rgb(28 22 17 / 0.76));
+  --glass-border: rgb(255 235 215 / 0.24);
+  --glass-hi: rgb(255 240 225 / 0.34);
+  --glass-shadow: 0 26px 52px -22px rgb(0 0 0 / 0.85);
+  --stage-bg:
+    radial-gradient(70% 90% at 84% 8%, rgb(255 138 61 / 0.4), transparent 62%),
+    radial-gradient(60% 80% at 6% 104%, rgb(190 80 20 / 0.38), transparent 64%),
+    linear-gradient(135deg, #1b120b, #26160b 55%, #3b1d0a);
+  --beam: rgb(255 190 120 / 0.34);
+  --case-bg: linear-gradient(160deg, rgb(255 190 120 / 0.1), rgb(0 0 0 / 0.18));
+}
+
+@layer components {
+  /* ---- Liquid glass ------------------------------------------------------- */
+
+  .liquid {
+    position: relative;
+    background: var(--glass-fill);
+    -webkit-backdrop-filter: blur(18px) saturate(1.7);
+    backdrop-filter: blur(18px) saturate(1.7);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      inset 0 1px 0 var(--glass-hi),
+      inset 1px 0 0 rgb(255 255 255 / 0.18),
+      inset 0 -1px 1px rgb(255 255 255 / 0.1),
+      var(--glass-shadow);
+  }
+  /* The specular sheen that makes it read as a curved pane of glass. */
+  .liquid::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(118deg, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0) 34%, rgb(255 255 255 / 0) 68%, rgb(255 255 255 / 0.2));
+    opacity: 0.75;
+  }
+  :root[data-theme="dark"] .liquid::before {
+    opacity: 0.35;
+  }
+  .liquid-strong {
+    background: var(--glass-fill-strong);
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .liquid {
+      background: var(--surface-solid);
+    }
+  }
+
+  /* ---- Hero stage ---------------------------------------------------------- */
+
+  .stage {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: 2.5rem;
+    background: var(--stage-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      inset 0 1px 0 var(--glass-hi),
+      var(--shadow-lg);
+  }
+  /* Window light falling diagonally across the room. */
+  .stage-beam {
+    position: absolute;
+    inset: -30% -8% auto auto;
+    width: 72%;
+    height: 170%;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 32%, var(--beam) 47%, transparent 63%);
+    transform: rotate(9deg);
+    opacity: 0.6;
+  }
+
+  /* ---- The scene (container-query units: 1cqw = 1% of its width) ----------- */
+
+  .scene {
+    --mx: 0;
+    --my: 0;
+    --cgx: 0;
+    --cgy: 0;
+    --bloom: 0.22;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 5 / 4;
+    container-type: size;
+    overflow: hidden;
+    border-radius: 2rem;
+    /* overflow+radius alone lets backdrop-filter children poke out of the corners */
+    clip-path: inset(0 round 2rem);
+    /* a glass-fronted display case: warm interior, bright rim */
+    background: var(--case-bg);
+    box-shadow:
+      inset 0 0 0 1px var(--glass-border),
+      inset 0 1px 0 var(--glass-hi);
+    /* story variables; see [data-step] rules below */
+    --cr-x: 62;
+    --cr-y: 36;
+    --ph-x: -42;
+    --ph-y: 20;
+    --ph-r: -6deg;
+    --ph-s: 1;
+    --ph-o: 1;
+    --cd-x: 62;
+    --cd-y: 18;
+    --cd-s: 0.2;
+    --cd-o: 0;
+    --gx: var(--cgx);
+    --gy: var(--cgy);
+  }
+  .sc-layer {
+    position: absolute;
+    inset: 0;
+    transition: transform 500ms var(--ease-out);
+  }
+  .sc-back {
+    transform: translate3d(calc(var(--mx) * -6px), calc(var(--my) * -4px), 0);
+  }
+  .sc-mid {
+    transform: translate3d(calc(var(--mx) * -14px), calc(var(--my) * -9px), 0);
+  }
+  .sc-front {
+    transform: translate3d(calc(var(--mx) * -26px), calc(var(--my) * -14px), 0);
+    pointer-events: none;
+  }
+  /* Soft ambient bloom: the room brightens at the moment of inspiration. */
+  .sc-bloom {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(38% 46% at 62% 52%, rgb(255 205 130 / 0.95), transparent 72%);
+    opacity: var(--bloom);
+    transition: opacity 900ms ease;
+  }
+
+  .sc-photo,
+  .sc-creature,
+  .sc-card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    will-change: transform;
+  }
+  .sc-photo {
+    width: 30cqw;
+    transform: translate(calc(var(--ph-x) * 1cqw), calc(var(--ph-y) * 1cqh)) rotate(var(--ph-r)) scale(var(--ph-s));
+    opacity: var(--ph-o);
+    transition:
+      transform 1500ms var(--ease-out),
+      opacity 700ms ease;
+  }
+  .sc-creature {
+    width: 34cqw;
+    transform: translate(calc(var(--cr-x) * 1cqw), calc(var(--cr-y) * 1cqh));
+    transition: transform 1700ms var(--ease-out);
+  }
+  .sc-card {
+    width: 47cqw;
+    transform: translate(calc(var(--cd-x) * 1cqw), calc(var(--cd-y) * 1cqh)) scale(var(--cd-s));
+    transform-origin: 20% 90%;
+    opacity: var(--cd-o);
+    transition:
+      transform 1300ms var(--spring),
+      opacity 500ms ease;
+  }
+
+  /* A polaroid-style print: white margin, soft shadow. */
+  .sc-print {
+    padding: 0.55cqw 0.55cqw 3cqw;
+    border-radius: 1.4cqw;
+    background: #fffdf8;
+    box-shadow:
+      0 2px 4px rgb(60 30 10 / 0.12),
+      0 2.4cqw 4.4cqw -1.6cqw rgb(60 30 10 / 0.5);
+  }
+  .sc-print > div {
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    border-radius: 0.9cqw;
+    position: relative;
+  }
+  /* A light sweeps across the photo while the creature studies it. */
+  .sc-print > div::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 38%, rgb(255 230 190 / 0.6) 50%, transparent 62%);
+    background-size: 260% 100%;
+    background-position: 140% 0;
+    opacity: 0;
+  }
+  .scene[data-step="examine"] .sc-print > div::after {
+    opacity: 1;
+    animation: sweep 1800ms ease-in-out 1;
+  }
+  @keyframes sweep {
+    to {
+      background-position: -40% 0;
+    }
+  }
+
+  /* Caption card: solid cream plate with a glass rim, so the text is always readable. */
+  .sc-caption {
+    padding: 2.4cqw 2.8cqw;
+    border-radius: 2.4cqw;
+    background: var(--plate);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      inset 0 1px 0 var(--glass-hi),
+      0 0 0 0 rgb(255 140 40 / 0),
+      0 2.6cqw 5cqw -2cqw rgb(120 50 8 / 0.55);
+    transition: box-shadow 900ms ease;
+  }
+  .scene[data-step="proud"] .sc-caption {
+    box-shadow:
+      inset 0 1px 0 var(--glass-hi),
+      0 0 4cqw 0.4cqw rgb(255 150 50 / 0.45),
+      0 2.6cqw 5cqw -2cqw rgb(120 50 8 / 0.55);
+  }
+  .sc-caption p:first-child {
+    font-size: max(0.62rem, 1.9cqw);
+  }
+  .sc-caption p:last-child {
+    font-size: max(0.8rem, 3.5cqw);
+    margin-top: 0.8cqw;
+  }
+  /* Small scenes (phones): a wider card so the caption stays readable. */
+  @container (max-width: 440px) {
+    .sc-card {
+      width: 66cqw;
+    }
+    /* (a container query cannot style the container itself, so shift the card via its own offset) */
+    .scene[data-step="emerge"] .sc-card,
+    .scene[data-step="proud"] .sc-card {
+      left: -19cqw;
+    }
+  }
+
+  /* Thought bubble: glass, so the creature's idea literally forms in the light. */
+  .sc-bubble {
+    position: absolute;
+    left: 7cqw;
+    top: -17cqh;
+    display: flex;
+    align-items: center;
+    gap: 1.1cqw;
+    padding: 2.1cqw 3.4cqw;
+    border-radius: 99cqw;
+    opacity: 0;
+    transform: translateY(2cqh) scale(0.7);
+    transform-origin: 10% 100%;
+    transition:
+      opacity 400ms ease,
+      transform 600ms var(--spring);
+  }
+  .sc-bubble i {
+    width: 1.9cqw;
+    height: 1.9cqw;
+    border-radius: 99px;
+    background: var(--accent);
+    opacity: 0.35;
+  }
+  .scene[data-step="think"] .sc-bubble {
+    opacity: 1;
+    transform: none;
+  }
+  .scene[data-step="think"] .sc-bubble i {
+    animation: dot 1.2s ease-in-out infinite;
+  }
+  .scene[data-step="think"] .sc-bubble i:nth-child(2) {
+    animation-delay: 0.18s;
+  }
+  .scene[data-step="think"] .sc-bubble i:nth-child(3) {
+    animation-delay: 0.36s;
+  }
+  /* small trailing bubbles linking to the head */
+  .sc-bubble::after {
+    content: "";
+    position: absolute;
+    left: 3cqw;
+    bottom: -2.4cqw;
+    width: 2cqw;
+    height: 2cqw;
+    border-radius: 99px;
+    background: var(--glass-fill);
+    border: 1px solid var(--glass-border);
+  }
+
+  /* Front glass: a ledge the creature stands behind, and a mullion the photo
+     drifts out from. Both blur what is physically behind them. */
+  .sc-ledge {
+    position: absolute;
+    left: -1cqw;
+    right: -1cqw;
+    top: 77cqh;
+    bottom: -2cqh;
+    border-radius: 3.2cqw 3.2cqw 0 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 4.6cqh;
+    pointer-events: auto;
+  }
+  .sc-mullion {
+    position: absolute;
+    left: -1cqw;
+    width: 12cqw;
+    top: 14cqh;
+    height: 66cqh;
+    border-radius: 0 3cqw 0 0;
+  }
+  .sc-legend {
+    position: relative;
+    display: flex;
+    gap: 2.2cqw;
+    font-size: max(0.72rem, 2.2cqw);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .sc-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.9cqw;
+    padding: 0.7cqw 1.8cqw;
+    border-radius: 99cqw;
+    color: var(--muted);
+    transition:
+      background-color 400ms ease,
+      color 400ms ease;
+  }
+  .sc-legend b {
+    display: grid;
+    place-items: center;
+    width: 3.2cqw;
+    min-width: 1.3rem;
+    height: 3.2cqw;
+    min-height: 1.3rem;
+    border-radius: 99px;
+    background: var(--tint-2);
+    font-size: 0.85em;
+  }
+  .scene[data-phase="spot"] .sc-legend [data-k="spot"],
+  .scene[data-phase="think"] .sc-legend [data-k="think"],
+  .scene[data-phase="caption"] .sc-legend [data-k="caption"] {
+    background: var(--tint);
+    color: var(--accent-text);
+  }
+  .scene[data-phase="spot"] .sc-legend [data-k="spot"] b,
+  .scene[data-phase="think"] .sc-legend [data-k="think"] b,
+  .scene[data-phase="caption"] .sc-legend [data-k="caption"] b {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  /* ---- Story choreography: one rule per step -------------------------------- */
+
+  .scene[data-step="rest"],
+  .scene[data-step="fade"] {
+    --ph-o: 0;
+    --ph-x: -42;
+    --cd-o: 0;
+    --cd-s: 0.9;
+    --cd-x: 49;
+    --cd-y: 4;
+  }
+  .scene[data-step="notice"] {
+    --ph-x: 12;
+    --ph-y: 20;
+    --ph-r: -5deg;
+    --gx: -0.95;
+    --gy: 0.1;
+  }
+  .scene[data-step="approach"] {
+    --ph-x: 12;
+    --cr-x: 45;
+    --gx: -0.95;
+    --gy: 0.15;
+    --bloom: 0.3;
+  }
+  .scene[data-step="examine"] {
+    --ph-x: 12;
+    --ph-s: 1.03;
+    --cr-x: 43;
+    --gx: -0.9;
+    --gy: 0.2;
+  }
+  .scene[data-step="think"] {
+    --ph-x: 12;
+    --cr-x: 52;
+    --gx: -0.5;
+    --gy: -1;
+    --bloom: 0.42;
+  }
+  .scene[data-step="inspire"] {
+    --ph-x: 12;
+    --cr-x: 52;
+    --gx: 0;
+    --gy: -0.4;
+    --bloom: 1;
+    --cd-x: 62;
+    --cd-y: 18;
+    --cd-s: 0.25;
+  }
+  .scene[data-step="emerge"] {
+    --ph-x: 12;
+    --cr-x: 55;
+    --gx: 0.2;
+    --gy: -0.6;
+    --bloom: 0.6;
+    --cd-x: 49;
+    --cd-y: 5;
+    --cd-s: 1;
+    --cd-o: 1;
+  }
+  .scene[data-step="proud"] {
+    --ph-x: 9;
+    --ph-y: 22;
+    --ph-r: -7deg;
+    --cr-x: 58;
+    --cd-x: 49;
+    --cd-y: 5;
+    --cd-s: 1;
+    --cd-o: 1;
+    --bloom: 0.4;
+    --gx: var(--cgx);
+    --gy: var(--cgy);
+  }
+  .scene[data-step="inspire"] .sc-creature > .cr-hop {
+    animation: hop 700ms var(--ease-out) 1;
+  }
+  .scene[data-step="proud"] .sc-creature > .cr-hop {
+    animation: swagger 1400ms var(--ease-out) 1;
+  }
+  @keyframes hop {
+    0% {
+      transform: translateY(0) scale(1.06, 0.92);
+    }
+    40% {
+      transform: translateY(-5cqh) scale(0.96, 1.08);
+    }
+    100% {
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes swagger {
+    0%,
+    100% {
+      transform: rotate(0);
+    }
+    35% {
+      transform: rotate(-3deg) translateY(-0.6cqh);
+    }
+    70% {
+      transform: rotate(2deg);
+    }
+  }
+
+  /* ---- The Caption Creature ------------------------------------------------- */
+
+  .cr {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    --lid-l: 0;
+    --lid-r: 0;
+    --eye: 1;
+  }
+  .cr * {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .cr-torso {
+    transform-origin: 50% 92%;
+    transition: transform 700ms var(--spring);
+  }
+  .cr-breath {
+    transform-origin: 50% 100%;
+    animation: breathe 4.2s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%,
+    100% {
+      transform: scale(1, 1);
+    }
+    50% {
+      transform: scale(1.012, 1.022);
+    }
+  }
+  .cr-eye {
+    transform: scale(var(--eye));
+    transition: transform 400ms var(--spring);
+  }
+  .cr-pupils {
+    transform: translate(calc(var(--gx, 0) * 5px), calc(var(--gy, 0) * 4.5px));
+    transition: transform 260ms var(--ease-out);
+  }
+  .cr-lid {
+    transform-origin: 50% 0;
+    transform: scaleY(var(--lid, 0));
+    transition: transform 320ms var(--spring);
+  }
+  .cr-lid.l {
+    --lid: var(--lid-l);
+  }
+  .cr-lid.r {
+    --lid: var(--lid-r);
+  }
+  .cr-blink {
+    animation: blink 5.6s infinite;
+  }
+  @keyframes blink {
+    0%,
+    93%,
+    100% {
+      transform: scaleY(1);
+    }
+    96% {
+      transform: scaleY(0.08);
+    }
+  }
+  .cr-brow {
+    transition: transform 420ms var(--spring);
+  }
+  .cr-brow.l {
+    transform: translateY(var(--bl-y, 0px)) rotate(var(--bl-r, 0deg));
+  }
+  .cr-brow.r {
+    transform: translateY(var(--br-y, 0px)) rotate(var(--br-r, 0deg));
+  }
+  .cr-mouth > * {
+    opacity: 0;
+    transition: opacity 220ms ease;
+  }
+  .cr[data-mouth="neutral"] .m-neutral,
+  .cr[data-mouth="o"] .m-o,
+  .cr[data-mouth="smirk"] .m-smirk,
+  .cr[data-mouth="grin"] .m-grin,
+  .cr[data-mouth="worry"] .m-worry {
+    opacity: 1;
+  }
+  .cr-arm {
+    transition: transform 520ms var(--spring);
+  }
+  .cr-arm.l {
+    transform-origin: 70% 12%;
+    transform: rotate(var(--arm-l, 0deg));
+  }
+  .cr-arm.r {
+    transform-origin: 30% 12%;
+    transform: rotate(var(--arm-r, 0deg));
+  }
+  .cr-ant {
+    transform-origin: 40% 100%;
+    transition: transform 600ms var(--spring);
+    transform: rotate(var(--ant, 0deg)) scale(var(--ant-s, 1));
+  }
+  .cr-glow {
+    opacity: var(--glow, 0);
+    transition: opacity 500ms ease;
+  }
+
+  /* moods: eyes, lids, brows, mouth, arms, antenna */
+  .cr[data-mood="idle"] {
+    --ant: 3deg;
+  }
+  .cr[data-mood="curious"] {
+    --eye: 1.12;
+    --lid-l: 0;
+    --lid-r: 0;
+    --bl-y: -5px;
+    --bl-r: -7deg;
+    --br-y: -6px;
+    --br-r: 7deg;
+    --ant: -6deg;
+    --ant-s: 1.08;
+    --arm-r: -14deg;
+  }
+  .cr[data-mood="squint"] {
+    --eye: 0.96;
+    --lid-l: 0.58;
+    --lid-r: 0.34;
+    --bl-y: 3px;
+    --bl-r: 9deg;
+    --br-y: -5px;
+    --br-r: -12deg;
+    --ant: 8deg;
+    --arm-l: -10deg;
+  }
+  .cr[data-mood="thinking"] {
+    --eye: 1;
+    --lid-l: 0.12;
+    --lid-r: 0.1;
+    --bl-y: -3px;
+    --bl-r: -4deg;
+    --br-y: 1px;
+    --br-r: 5deg;
+    --ant: -4deg;
+    --glow: 0.35;
+    --arm-r: -38deg;
+  }
+  .cr[data-mood="inspired"] {
+    --eye: 1.16;
+    --bl-y: -8px;
+    --bl-r: -10deg;
+    --br-y: -8px;
+    --br-r: 10deg;
+    --ant: 0deg;
+    --ant-s: 1.22;
+    --glow: 1;
+    --arm-l: 52deg;
+    --arm-r: -52deg;
+  }
+  .cr[data-mood="proud"] {
+    --eye: 1;
+    --lid-l: 0.36;
+    --lid-r: 0.36;
+    --bl-y: 0px;
+    --bl-r: 3deg;
+    --br-y: -5px;
+    --br-r: -9deg;
+    --ant: 4deg;
+    --glow: 0.42;
+    --arm-l: 16deg;
+    --arm-r: -16deg;
+  }
+  .cr[data-mood="confused"] {
+    --eye: 0.9;
+    --lid-l: 0.08;
+    --lid-r: 0.08;
+    --bl-y: -2px;
+    --bl-r: -15deg;
+    --br-y: -2px;
+    --br-r: 15deg;
+    --ant: -30deg;
+    --ant-s: 0.92;
+    --arm-l: 8deg;
+    --arm-r: -8deg;
+  }
+  .cr[data-mood="curious"] .cr-torso {
+    transform: rotate(-5deg);
+  }
+  .cr[data-mood="squint"] .cr-torso {
+    transform: rotate(7deg) scale(1.01, 0.98);
+  }
+  .cr[data-mood="thinking"] .cr-torso {
+    transform: rotate(-3deg);
+  }
+  .cr[data-mood="inspired"] .cr-torso {
+    transform: scale(1.04, 1.07) translateY(-2px);
+  }
+  .cr[data-mood="proud"] .cr-torso {
+    transform: rotate(3deg) scale(1.035);
+  }
+  .cr[data-mood="confused"] .cr-torso {
+    transform: rotate(-9deg) scale(0.98);
+  }
+  /* thinking: the idea-antenna tip pulses faintly while the creature works */
+  .cr[data-mood="thinking"] .cr-glow {
+    animation: pulse-glow 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse-glow {
+    50% {
+      opacity: 0.8;
+    }
+  }
+  /* confused: a small head wobble */
+  .cr[data-mood="confused"] .cr-torso {
+    animation: wobble 2.2s ease-in-out infinite;
+  }
+  @keyframes wobble {
+    0%,
+    100% {
+      rotate: 0deg;
+    }
+    50% {
+      rotate: 2.5deg;
+    }
+  }
+
+  /* ---- Builder: step cards, insertion, run states --------------------------- */
+
+  .step-card[data-selected="true"] {
+    border-color: var(--accent);
+    box-shadow:
+      inset 0 1px 0 var(--edge),
+      0 0 0 4px rgb(255 122 26 / 0.14),
+      var(--shadow-lg);
+  }
+  .step-card[data-run="running"] {
+    border-color: var(--glow);
+    animation: card-run 1.6s ease-in-out infinite;
+  }
+  @keyframes card-run {
+    50% {
+      box-shadow:
+        inset 0 1px 0 var(--edge),
+        0 0 0 6px rgb(255 122 26 / 0.18),
+        var(--shadow);
+    }
+  }
+  .step-card[data-dragging="true"] {
+    z-index: 5;
+    cursor: grabbing;
+    box-shadow:
+      inset 0 1px 0 var(--edge),
+      0 30px 60px -20px rgb(80 30 5 / 0.55),
+      0 0 0 2px var(--accent);
+    transform: scale(1.015) rotate(-0.4deg);
+    opacity: 1;
+  }
+  .insert-zone {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1.25rem;
+    height: 1.25rem;
+    z-index: 2;
+  }
+  .insert-btn {
+    position: absolute;
+    left: 1.25rem;
+    top: 50%;
+    width: 1.9rem;
+    height: 1.9rem;
+    display: grid;
+    place-items: center;
+    border-radius: 99px;
+    color: var(--accent-text);
+    cursor: pointer;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+    transition:
+      opacity 200ms ease,
+      transform 300ms var(--spring);
+  }
+  .insert-zone:hover .insert-btn,
+  .insert-btn:focus-visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  @media (hover: none) {
+    .insert-btn {
+      opacity: 0.6;
+      transform: translate(-50%, -50%) scale(0.85);
+    }
+  }
+
+  /* ---- Scroll reveals (progressive enhancement) ---------------------------- */
+
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 45%;
+    }
+    @keyframes reveal {
+      from {
+        opacity: 0;
+        transform: translateY(28px) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none !important;
+  }
+  .cr-breath,
+  .cr-blink {
+    animation: none !important;
+  }
+  .scene,
+  .scene * {
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@layer components {
+  /* A result from a previous version of the chain: calm and clearly secondary. */
+  .result-card[data-stale="true"] {
+    animation: none;
+    box-shadow: var(--shadow);
+    opacity: 0.92;
+    background:
+      linear-gradient(var(--plate), var(--plate)) padding-box,
+      linear-gradient(135deg, var(--line-strong), var(--line)) border-box;
+  }
+}

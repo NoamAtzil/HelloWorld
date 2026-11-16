@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { Guide } from "@/components/guide";
+import { CAPTION_PAGE_GUIDANCE } from "@/lib/guidance";
 import { WinnerCard } from "@/components/winner-card";
 import { sharedImageUrl } from "@/lib/public-url";
 
@@ -40,7 +42,8 @@ export default async function PublicCaptionPage(props: PageProps<"/c/[id]">) {
   if (!post) notFound();
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-4 pb-24 pt-8">
+    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-4 py-8 sm:py-12">
+      <Guide guidance={CAPTION_PAGE_GUIDANCE} eyebrow="Shared caption" as="h1" />
       <WinnerCard
         imageUrl={sharedImageUrl(post.image_path)}
         content={post.content}
@@ -48,8 +51,8 @@ export default async function PublicCaptionPage(props: PageProps<"/c/[id]">) {
         voice={post.voice}
         score={Number(post.score)}
       />
-      <div className="glass flex flex-col gap-3 rounded-3xl p-5">
-        <p className="font-display text-lg font-bold">Make your own.</p>
+      <div className="panel flex flex-col gap-3 p-6">
+        <p className="font-display text-xl">Make your own.</p>
         <p className="text-sm text-muted">Pick a photo and a voice, get three captions, and publish your favorite.</p>
         <Link href="/" className="btn-primary press self-start">Try the Studio</Link>
       </div>

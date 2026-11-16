@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
+import { Guide } from "@/components/guide";
+import { Icon } from "@/components/icons";
 import { Photo } from "@/components/photo";
+import { arenaGuidance, type Guidance } from "@/lib/guidance";
 import { voiceLabel } from "@/lib/voices";
 import { castDuelVote, nextPair } from "./actions";
 import type { ArenaPair, ArenaReveal, ArenaSide } from "./pair";
@@ -58,93 +61,117 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
     }
   }
 
+  const revealed = phase.name === "revealed" ? phase : null;
+
+  // The Caption Creature's reaction is derived from the real vote state.
+  let guidance: Guidance;
+  if (!pair) guidance = arenaGuidance(error ? { phase: "failed" } : { phase: "empty" });
+  else if (revealed) guidance = arenaGuidance({ phase: "revealed", pairTotal: revealed.reveal.pair_total, pairWinnerVotes: revealed.reveal.pair_winner_votes });
+  else if (phase.name === "saving") guidance = { mood: "thinking", title: "Counting your vote", line: "One moment…" };
+  else if (error) guidance = { mood: "confused", title: "That didn't count", line: "Hm. That didn't go to plan. Try again." };
+  else guidance = arenaGuidance({ phase: "ready" });
+
   if (!pair) {
     return (
-      <div className="glass flex flex-col items-center gap-4 rounded-3xl px-6 py-12 text-center">
-        <p className="font-display text-xl font-bold">
-          {judged > 0 ? "You've judged every battle available." : "No battles to judge yet."}
-        </p>
-        <p className="max-w-sm text-sm text-muted">
-          Battles need captions from other people. Publish a few of your own and check back as the
-          community grows, or enter today&apos;s Daily Drop.
-        </p>
-        {error && <p role="alert" className="text-sm text-coral-text">{error}</p>}
-        <div className="flex flex-wrap justify-center gap-2">
-          <Link href="/studio" className="btn-primary press">Make a caption</Link>
-          <Link href="/drop" className="btn-quiet press">Today&apos;s Drop</Link>
+      <div className="stage">
+        <div className="stage-beam" aria-hidden="true" />
+        <div className="relative flex flex-col gap-5 p-6 sm:p-10">
+          <Guide guidance={guidance} eyebrow="The Arena" size="lg" as="h1" />
+          <p className="max-w-lg text-ink-2">
+            {judged > 0 ? "You've judged every battle available. " : ""}Battles need captions from other people. Publish a few of your own and check back as the community grows, or enter today&apos;s Daily Drop.
+          </p>
+          {error && <p role="alert" className="text-sm font-medium text-coral-text">{error}</p>}
+          <div className="flex flex-wrap gap-2">
+            <Link href="/studio" className="btn-primary press">
+              <Icon name="spark" /> Make a caption
+            </Link>
+            <Link href="/drop" className="btn-quiet press">
+              <Icon name="calendar" /> Today&apos;s Drop
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
-  const revealed = phase.name === "revealed" ? phase : null;
   const sides = [pair.left, pair.right];
 
   return (
-    <div className="flex flex-col gap-5">
-      {pair.sameImage && sides[0].imageUrl && (
-        <Photo src={sides[0].imageUrl} alt="The photo both captions are about" size="arena" loading="eager" scrim={false} />
-      )}
+    <div className="stage">
+      <div className="stage-beam" aria-hidden="true" />
+      <div className="relative flex flex-col gap-6 p-5 sm:p-8">
+        <Guide guidance={guidance} eyebrow="Head to head" as="h1" />
 
-      <div role="group" aria-label="Choose the funnier caption" className="grid gap-4 sm:grid-cols-2">
-        {sides.map((side, index) => {
-          const other = sides[1 - index];
-          const picked = phase.name !== "judging" && phase.picked === side.id;
-          const lost = phase.name !== "judging" && !picked;
-          const info = revealed ? (revealed.reveal.winner.id === side.id ? revealed.reveal.winner : revealed.reveal.loser) : null;
-          return (
-            <div key={side.id} className="flex flex-col gap-2">
-              {!pair.sameImage && side.imageUrl && (
-                <Photo src={side.imageUrl} alt="" size="arena" loading="eager" scrim={false} />
-              )}
-              <button
-                type="button"
-                onClick={() => void vote(side, other)}
-                disabled={phase.name !== "judging"}
-                aria-label={`Vote for caption ${index + 1}: ${side.content}`}
-                className={`arena-plate bend-plate plate-glass press relative px-5 pb-7 pt-5 pr-12 text-left ${
-                  picked ? "is-winner" : ""
-                } ${lost ? "is-loser" : ""}`}
-              >
-                <span aria-hidden="true" className="mb-2 block text-xs font-semibold uppercase tracking-wider text-accent-text">
-                  Caption {index === 0 ? "A" : "B"}
-                </span>
-                <span className="block text-xl font-semibold leading-snug tracking-tight sm:text-2xl">{side.content}</span>
-                {picked && (
-                  <span className="arena-badge" aria-hidden="true">
-                    {revealed ? "Your pick" : "…"}
+        {pair.sameImage && sides[0].imageUrl && (
+          <div className="flex justify-center">
+            <Photo src={sides[0].imageUrl} alt="The photo both captions are about" size="arena" loading="eager" scrim={false} />
+          </div>
+        )}
+
+        <div role="group" aria-label="Choose the funnier caption" className="grid gap-4 sm:grid-cols-2">
+          {sides.map((side, index) => {
+            const other = sides[1 - index];
+            const picked = phase.name !== "judging" && phase.picked === side.id;
+            const lost = phase.name !== "judging" && !picked;
+            const info = revealed ? (revealed.reveal.winner.id === side.id ? revealed.reveal.winner : revealed.reveal.loser) : null;
+            return (
+              <div key={side.id} className="flex flex-col gap-2">
+                {!pair.sameImage && side.imageUrl && <Photo src={side.imageUrl} alt="" size="arena" loading="eager" scrim={false} />}
+                <button
+                  type="button"
+                  onClick={() => void vote(side, other)}
+                  disabled={phase.name !== "judging"}
+                  aria-label={`Vote for caption ${index + 1}: ${side.content}`}
+                  className={`arena-plate liquid liquid-strong press relative rounded-2xl px-5 pb-6 pt-5 text-left ${picked ? "is-winner" : ""} ${lost ? "is-loser" : ""}`}
+                >
+                  <span aria-hidden="true" className="eyebrow mb-2 block">
+                    Caption {index === 0 ? "A" : "B"}
                   </span>
+                  <span className="caption-text block text-[1.35rem] sm:text-2xl">{side.content}</span>
+                  {picked && (
+                    <span className="arena-badge" aria-hidden="true">
+                      {revealed ? "Your pick" : "…"}
+                    </span>
+                  )}
+                </button>
+                {info && (
+                  <p className="arena-reveal px-2 text-sm text-muted" style={{ "--i": index } as React.CSSProperties}>
+                    <span className="font-semibold text-ink">{info.author}</span>
+                    {voiceLabel(info.voice) ? ` · ${voiceLabel(info.voice)}` : ""}
+                    <span className="block text-xs">
+                      {info.wins} {info.wins === 1 ? "win" : "wins"} in {info.battles} {info.battles === 1 ? "battle" : "battles"}
+                    </span>
+                  </p>
                 )}
-              </button>
-              {info && (
-                <p className="arena-reveal px-2 text-sm text-muted" style={{ "--i": index } as React.CSSProperties}>
-                  <span className="font-semibold text-ink">{info.author}</span>
-                  {voiceLabel(info.voice) ? ` · ${voiceLabel(info.voice)}` : ""}
-                  <span className="block text-xs">
-                    {info.wins} {info.wins === 1 ? "win" : "wins"} in {info.battles} {info.battles === 1 ? "battle" : "battles"}
-                  </span>
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {revealed && (
-        <div className="arena-reveal glass flex flex-col gap-3 rounded-2xl p-4" role="status">
-          <CrowdBar reveal={revealed.reveal} />
-          <button ref={nextRef} type="button" onClick={() => void another()} disabled={loadingNext} className="btn-primary press self-start">
-            {loadingNext ? "Loading…" : "Next battle"}
-          </button>
+              </div>
+            );
+          })}
         </div>
-      )}
 
-      {error && <p role="alert" className="rounded-xl bg-coral-tint px-3 py-2 text-sm text-coral-text">{error}</p>}
-      {phase.name === "judging" && (
-        <p className="text-sm text-muted">
-          {judged > 0 ? `${judged} judged this session. ` : ""}Pick the funnier one. Authors are revealed after you vote.
-        </p>
-      )}
+        {revealed && (
+          <div className="arena-reveal panel flex flex-col gap-3 p-4" role="status">
+            <CrowdBar reveal={revealed.reveal} />
+            <button ref={nextRef} type="button" onClick={() => void another()} disabled={loadingNext} className="btn-primary press self-start">
+              {loadingNext ? (
+                <>
+                  <span className="spinner" /> Loading…
+                </>
+              ) : (
+                <>
+                  Next battle <Icon name="arrow" />
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {error && <p role="alert" className="rounded-2xl bg-coral-tint px-4 py-3 text-sm font-medium text-coral-text">{error}</p>}
+        {phase.name === "judging" && (
+          <p className="text-sm text-muted">
+            {judged > 0 ? `${judged} judged this session. ` : ""}Pick the funnier one. Authors are revealed after you vote.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -160,8 +187,8 @@ function CrowdBar({ reveal }: { reveal: ArenaReveal }) {
           ? "You're the first to judge this pair."
           : `${pct}% of ${total} judges agreed with your pick.`}
       </p>
-      <div className="mt-2 h-3 overflow-hidden rounded-full bg-line" aria-hidden="true">
-        <div className="arena-fill h-full rounded-full bg-glow" style={{ width: `${only ? 100 : pct}%` }} />
+      <div className="mt-2 h-3 overflow-hidden rounded-full bg-tint-2" aria-hidden="true">
+        <div className="arena-fill h-full rounded-full bg-gradient-to-r from-glow to-amber" style={{ width: `${only ? 100 : pct}%` }} />
       </div>
     </div>
   );

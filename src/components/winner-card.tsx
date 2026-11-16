@@ -1,7 +1,8 @@
 import { Photo } from "@/components/photo";
 import { voiceLabel } from "@/lib/voices";
 
-// A read-only caption: photo, frosted plate, and who/what made it.
+// A read-only caption: photo, straight serif plate, and who/what made it.
+// A labelled card (a winner) gets the glowing Prompt Chains result-card border.
 export function WinnerCard({
   imageUrl,
   content,
@@ -19,19 +20,19 @@ export function WinnerCard({
 }) {
   const voiceName = voiceLabel(voice);
   return (
-    <figure>
-      <Photo src={imageUrl} alt={content} size="feed">
+    <figure className={`${label ? "result-card" : "panel"} overflow-hidden !rounded-[1.6rem]`}>
+      <Photo src={imageUrl} alt={content} size="feed" className="!rounded-none !shadow-none">
         {label && (
-          <span className="absolute left-3 top-3 rounded-full bg-accent px-3 py-1 text-xs font-bold uppercase tracking-wider text-on-accent">
+          <span className="absolute left-3 top-3 rounded-full bg-gradient-to-b from-[var(--btn-from)] to-accent px-3 py-1 text-xs font-bold uppercase tracking-wider text-on-accent shadow-[var(--shadow-glow)]">
             {label}
           </span>
         )}
       </Photo>
-      <figcaption>
-        <div className="bend-plate plate-glass relative z-[1] mx-3 -mt-10 px-5 pb-6 pt-4 pr-12">
-          <p className="text-xl font-semibold leading-snug tracking-tight sm:text-2xl">{content}</p>
+      <figcaption className="pb-4">
+        <div className="plate-glass relative z-[1] mx-3 -mt-10 px-5 pb-5 pt-4">
+          <p className="caption-text text-[1.35rem] sm:text-2xl">{content}</p>
         </div>
-        <p className="mt-2 px-2 text-sm text-muted">
+        <p className="mt-3 px-5 text-sm text-muted">
           <span className="font-semibold text-ink">{author}</span>
           {voiceName ? ` · ${voiceName}` : ""}
           {typeof score === "number" ? ` · score ${score > 0 ? `+${score}` : score}` : ""}

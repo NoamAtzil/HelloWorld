@@ -11,7 +11,7 @@ export function MyCaptions({ items }: { items: MyItem[] }) {
   const records = new Map(items.map((i) => [i.post.id, i.record]));
   return (
     <>
-      <ul className="flex flex-col gap-12">
+      <ul className="flex flex-col gap-8">
         {actions.posts.map((post) => (
           <li key={post.id}>
             <PostCard post={post} onVote={actions.castVote} onDelete={actions.removePost} showAuthor={false} extra={records.get(post.id)} />

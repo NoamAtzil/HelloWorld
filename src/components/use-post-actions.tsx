@@ -67,7 +67,7 @@ export function NoticeToast({ notice, onDismiss }: { notice: string | null; onDi
   return (
     <div role="alert" className="pointer-events-none fixed inset-x-4 bottom-4 z-30 flex justify-center">
       {notice && (
-        <div className="pointer-events-auto flex max-w-md items-center gap-3 rounded-2xl border border-coral/40 bg-coral-tint px-4 py-3 text-sm font-medium text-coral-text shadow-card">
+        <div className="pointer-events-auto flex max-w-md items-center gap-3 rounded-2xl border border-coral/40 bg-coral-tint px-4 py-3 text-sm font-medium text-coral-text shadow-[var(--shadow)]">
           <span>{notice}</span>
           <button
             type="button"

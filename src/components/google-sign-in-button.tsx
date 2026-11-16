@@ -43,9 +43,9 @@ export function GoogleSignInButton({ next: nextRaw }: { next?: string | null }) 
         disabled={isLoading}
         className="btn-primary press"
       >
-        {isLoading ? "Redirecting…" : "Continue with Google"}
+        {isLoading ? (<><span className="spinner" /> Redirecting…</>) : "Continue with Google"}
       </button>
-      {error && <p role="alert" className="rounded-xl bg-coral-tint px-3 py-2 text-sm text-coral-text">{error}</p>}
+      {error && <p role="alert" className="rounded-2xl bg-coral-tint px-4 py-2 text-sm font-medium text-coral-text">{error}</p>}
     </div>
   );
 }

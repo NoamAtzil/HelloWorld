@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Guide } from "@/components/guide";
 
-// Shown in place of a members-only page to visitors who aren't signed in.
+// Shown in place of a members-only page to visitors who aren't signed in. The
+// Caption Creature explains what is waiting behind the sign-in.
 export function SignInGate({
   title,
   children,
@@ -11,12 +13,15 @@ export function SignInGate({
   next: string;
 }) {
   return (
-    <div className="glass glass-lit mx-auto flex max-w-md flex-col items-center gap-4 rounded-[28px] p-8 text-center">
-      <h2 className="text-2xl font-bold">{title}</h2>
-      <p className="text-muted">{children}</p>
-      <Link href={`/login?next=${encodeURIComponent(next)}`} className="btn-primary press">
-        Sign in with Google
-      </Link>
+    <div className="stage">
+      <div className="stage-beam" aria-hidden="true" />
+      <div className="relative flex flex-col items-start gap-5 p-6 sm:p-10">
+        <Guide guidance={{ mood: "curious", title, line: "Sign in with Google to come in." }} size="lg" />
+        <p className="max-w-lg text-ink-2">{children}</p>
+        <Link href={`/login?next=${encodeURIComponent(next)}`} className="btn-primary btn-lg press">
+          Sign in with Google
+        </Link>
+      </div>
     </div>
   );
 }

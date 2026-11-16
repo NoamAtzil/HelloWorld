@@ -20,7 +20,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   return (
     <form action={formAction} className="flex flex-col gap-4">
       {isIncomplete && (
-        <p className="rounded-xl bg-tint p-3 text-sm text-accent-text">
+        <p className="rounded-2xl bg-tint p-3 text-sm font-medium text-accent-text">
           Please add your first and last name to finish setting up your
           account.
         </p>
@@ -74,14 +74,14 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         />
       </div>
 
-      {state?.error && <p role="alert" className="rounded-xl bg-coral-tint px-3 py-2 text-sm text-coral-text">{state.error}</p>}
+      {state?.error && <p role="alert" className="rounded-2xl bg-coral-tint px-4 py-2 text-sm font-medium text-coral-text">{state.error}</p>}
 
       <button
         type="submit"
         disabled={pending}
         className="btn-primary press"
       >
-        {pending ? "Saving…" : "Save"}
+        {pending ? (<><span className="spinner" /> Saving…</>) : "Save"}
       </button>
     </form>
   );

@@ -1,0 +1,121 @@
+import type { Mood } from "./mood";
+
+// What the Caption Creature says and how it feels on each page. Everything here
+// is a pure function of REAL application state (never timers or randomness), so
+// the mascot reacts to what the person is actually doing. Same voice as in the
+// Prompt Chains app: short, warm, a little mischievous, and always pointing at
+// the next useful step. Unit-tested.
+
+export type Guidance = { mood: Mood; title: string; line: string };
+
+// The server's own wording for "you can't generate right now" (see lib/quota.ts).
+export function isQuotaMessage(message: string | null | undefined): boolean {
+  return Boolean(message && /today.?s free captions|caption limit|at capacity|unavailable/i.test(message));
+}
+
+export type StudioState = {
+  signedIn: boolean;
+  /** Daily Drop mode: the photo is fixed to today's challenge. */
+  challenge: boolean;
+  hasPhoto: boolean;
+  busy: null | "generate" | "remix" | "publish" | "card";
+  hasTakes: boolean;
+  published: null | { drop: boolean };
+  error: string | null;
+};
+
+export function studioGuidance(s: StudioState): Guidance {
+  if (s.published) {
+    return {
+      mood: "proud",
+      title: "All done",
+      line: s.published.drop ? "You're in today's Drop. Go see how the votes land." : "Published! Go see how it lands in the feed.",
+    };
+  }
+  if (s.error) {
+    return isQuotaMessage(s.error)
+      ? { mood: "confused", title: "That's the limit for now", line: s.signedIn ? "I'm out of captions for today. Come back tomorrow." : "I'm out of free captions today. Sign in for more." }
+      : { mood: "confused", title: "That didn't work", line: "Hm. That didn't go to plan. Try again." };
+  }
+  switch (s.busy) {
+    case "generate":
+      return { mood: "thinking", title: "Making your captions", line: "Reading the photo and writing three takes…" };
+    case "remix":
+      return { mood: "thinking", title: "Remixing", line: "Rewriting that one…" };
+    case "publish":
+      return { mood: "thinking", title: "Publishing", line: s.challenge ? "Entering you in today's Drop…" : "Putting it in the feed…" };
+    case "card":
+      return { mood: "thinking", title: "Making your card", line: "Framing it for sharing…" };
+  }
+  if (s.hasTakes) {
+    return {
+      mood: "proud",
+      title: "Three takes ready",
+      line: s.signedIn ? "Switch between takes, remix one, then publish your favorite." : "Switch between takes. Sign in to remix, publish and vote.",
+    };
+  }
+  if (s.hasPhoto) {
+    return {
+      mood: "curious",
+      title: s.challenge ? "Caption today's photo" : "Make a caption",
+      line: s.challenge ? "Pick a voice, then generate. One entry per day." : "Pick a voice, steer the joke if you like, then generate.",
+    };
+  }
+  return { mood: "idle", title: "Make a caption", line: "Pick a photo, or upload your own, and I'll find the joke." };
+}
+
+export type ArenaState =
+  | { phase: "signed-out" }
+  | { phase: "failed" }
+  | { phase: "empty" }
+  | { phase: "ready" }
+  | { phase: "revealed"; pairTotal: number; pairWinnerVotes: number };
+
+export function arenaGuidance(s: ArenaState): Guidance {
+  switch (s.phase) {
+    case "signed-out":
+      return { mood: "curious", title: "The Arena", line: "Two captions, one photo. Sign in and tell me which is funnier." };
+    case "failed":
+      return { mood: "confused", title: "Couldn't load a battle", line: "Something went wrong. Give it another try." };
+    case "empty":
+      return { mood: "idle", title: "No battles right now", line: "You've judged everything for now. Check back soon." };
+    case "ready":
+      return { mood: "squint", title: "Which one's funnier?", line: "Tap the caption that made you laugh. You'll see who wrote each." };
+    case "revealed": {
+      if (s.pairTotal <= 1) return { mood: "curious", title: "You were first", line: "You're the first to judge this pair. Next battle?" };
+      if (s.pairWinnerVotes * 2 > s.pairTotal) return { mood: "proud", title: "The crowd agrees", line: "Most people picked the same one. Next battle?" };
+      if (s.pairWinnerVotes * 2 === s.pairTotal) return { mood: "curious", title: "A dead heat", line: "The crowd is split right down the middle. Next battle?" };
+      return { mood: "squint", title: "Bold pick", line: "The crowd went the other way. Next battle?" };
+    }
+  }
+}
+
+export type DropState = { signedIn: boolean; hasChallenge: boolean; alreadyEntered: boolean; entries: number | null };
+
+export function dropGuidance(s: DropState): Guidance {
+  if (!s.hasChallenge) return { mood: "confused", title: "No challenge today", line: "There's no photo to caption today. Check back tomorrow." };
+  if (!s.signedIn) return { mood: "curious", title: "Today's challenge", line: "One photo a day, one caption each. Sign in to enter and vote." };
+  if (s.alreadyEntered) return { mood: "proud", title: "You're in", line: "Your caption is entered. Now vote on the others." };
+  return { mood: "curious", title: "Today's challenge", line: "Caption the photo, then vote on other entries. One entry per day." };
+}
+
+export function feedGuidance(s: { posts: number; voice: string | null }): Guidance {
+  if (s.posts === 0) {
+    return s.voice
+      ? { mood: "idle", title: "Nothing in that voice yet", line: "Try another voice, or make the first one yourself." }
+      : { mood: "idle", title: "The feed is quiet", line: "No captions yet. Make the first one in the Studio." };
+  }
+  return { mood: "curious", title: "The feed", line: "Browse captions and vote on what lands. Filter by voice, or tap Surprise me." };
+}
+
+export const HALL_GUIDANCE: Guidance = { mood: "proud", title: "Hall of Fame", line: "The captions, battles and creators that landed best." };
+export const LOGIN_GUIDANCE: Guidance = { mood: "curious", title: "Welcome", line: "Sign in with Google and I'll remember your captions." };
+export const ONBOARDING_GUIDANCE: Guidance = { mood: "curious", title: "One last thing", line: "What should I call you? First and last name, that's all." };
+
+export function dashboardGuidance(s: { posts: number; firstName: string | null }): Guidance {
+  return s.posts === 0
+    ? { mood: "idle", title: `Hi${s.firstName ? `, ${s.firstName}` : ""}`, line: "You haven't published anything yet. The Studio is one tap away." }
+    : { mood: "proud", title: `Hi${s.firstName ? `, ${s.firstName}` : ""}`, line: "Here's everything you've made, and how it's doing." };
+}
+
+export const CAPTION_PAGE_GUIDANCE: Guidance = { mood: "proud", title: "A caption worth sharing", line: "Copy it, share it, or make your own." };

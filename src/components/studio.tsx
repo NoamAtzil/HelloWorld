@@ -7,6 +7,10 @@ import { generateTakes, publishCaption, remixCaption } from "@/app/studio/action
 import { dataUrlToFile, downscale, fileToDataUrl } from "@/lib/image-client";
 import { LIBRARY, libraryUrl, type LibraryItem } from "@/lib/library";
 import { Photo } from "@/components/photo";
+import { Guide } from "@/components/guide";
+import { Icon } from "@/components/icons";
+import { dropGuidance, studioGuidance } from "@/lib/guidance";
+import { voiceTheme } from "@/lib/voice-theme";
 import { downloadCard } from "@/lib/share-card";
 import type { PublishResult, RemixResult, TakesResult } from "@/lib/studio-types";
 import {
@@ -82,6 +86,7 @@ export function Studio({
   const uploadUrl = useRef<string | null>(null);
   const resultUrls = useRef<string[]>([]);
   const canRemix = signedIn;
+  const preview = useRef<HTMLDivElement>(null);
 
   useEffect(
     () => () => {
@@ -376,356 +381,341 @@ export function Studio({
   const generating = busy === "generate";
   const locked = busy !== null;
 
+  // What the Caption Creature says: a pure function of the real state above.
+  const guidance = studioGuidance({
+    signedIn,
+    challenge: Boolean(challenge),
+    hasPhoto: Boolean(source),
+    busy,
+    hasTakes: Boolean(takes && takes.length > 0),
+    published: published ? { drop: Boolean(published.drop) } : null,
+    error,
+  });
+
+  // On a phone the preview sits below the controls: bring it into view when work starts.
+  useEffect(() => {
+    if (busy !== "generate" || window.innerWidth >= 1024) return;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    preview.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  }, [busy]);
+
   if (challenge && alreadyEntered && !published) {
     return (
-      <div className="glass rounded-3xl p-6 text-center">
-        <p className="font-display text-xl font-bold">You&apos;re in today&apos;s Drop.</p>
-        <p className="mt-1 text-sm text-muted">
-          One entry per person per day. Vote on the other captions below.
-        </p>
+      <div className="panel p-6">
+        <Guide guidance={dropGuidance({ signedIn, hasChallenge: true, alreadyEntered: true, entries: null })} eyebrow="Daily Drop" />
+        <p className="mt-3 text-sm text-muted">One entry per person per day. Vote on the other captions below.</p>
       </div>
     );
   }
 
   return (
-    <div id="studio" className="glass glass-lit flex scroll-mt-24 flex-col gap-5 rounded-[28px] p-4 sm:p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-xl font-bold sm:text-2xl">
-          {challenge ? `Caption today's photo` : heading}
-        </h2>
-        <button
-          type="button"
-          onClick={shuffle}
-          disabled={locked}
-          className="btn-quiet press min-h-9 px-3 text-sm"
-          title="Random photo, voice, and direction"
-        >
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="4" y="4" width="16" height="16" rx="3" />
-            <circle cx="9" cy="9" r="1" fill="currentColor" />
-            <circle cx="15" cy="15" r="1" fill="currentColor" />
-            <circle cx="15" cy="9" r="1" fill="currentColor" />
-            <circle cx="9" cy="15" r="1" fill="currentColor" />
-          </svg>
-          Shuffle
-        </button>
-      </div>
-
-      {/* PHOTO + the AI plate */}
-      <div>
-        <Photo
-          src={previewSrc}
-          alt={previewAlt}
-          size={challenge ? "drop" : "studio"}
-          fixed
-          loading="eager"
-          fallback="Choose a photo below"
-          className={generating ? "is-bending" : ""}
-        />
-        <div
-          className={`bend-plate plate-glass relative z-[1] mx-3 -mt-10 px-5 pb-6 pt-4 pr-12 ${
-            current ? "" : "border-dashed"
-          }`}
-        >
-          {current ? (
-            <p
-              key={`${selected}-${current.text}`}
-              aria-live="polite"
-              className="plate-in text-xl font-semibold leading-snug tracking-tight sm:text-2xl"
-            >
-              {current.text}
-            </p>
-          ) : (
-            <p aria-live="polite" className="text-base font-medium text-accent-text">
-              {generating ? "Finding the joke…" : "Your caption lands here"}
-            </p>
-          )}
+    <div id="studio" className="grid scroll-mt-24 grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]">
+      {/* LEFT: photo, voice, and the joke's direction */}
+      <section className="panel flex flex-col gap-6 p-5 sm:p-6" aria-label="Choose a photo and a voice">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="eyebrow">The Studio</p>
+            <h2 className="mt-1 text-2xl sm:text-3xl">{challenge ? `Caption today's photo` : heading}</h2>
+          </div>
+          <button type="button" onClick={shuffle} disabled={locked} className="btn-quiet btn-sm press" title="Random photo, voice, and direction">
+            <Icon name="shuffle" className="h-4 w-4" /> Shuffle
+          </button>
         </div>
-      </div>
 
-      {/* Three takes */}
-      {takes && takes.length > 0 && (
-        <div className="flex flex-col gap-3">
-          {takes.length > 1 && (
-            <div role="group" aria-label="Caption takes" className="inline-flex self-start rounded-full border border-line bg-surface p-1">
-              {takes.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setSelected(i)}
-                  aria-pressed={selected === i}
-                  aria-label={`Take ${i + 1} of ${takes.length}`}
-                  className={`min-h-9 rounded-full px-4 text-sm ${
-                    selected === i ? "bg-tint font-semibold text-accent-text" : "font-medium text-muted hover:text-ink"
+        {/* Photo source */}
+        {!challenge && (
+          <div className="flex flex-col gap-2">
+            <p id="photo-label" className="label !mb-0">1 · Photo</p>
+            <ul aria-labelledby="photo-label" className="no-scrollbar -mx-1 flex gap-2.5 overflow-x-auto px-1 py-1.5">
+              <li className="shrink-0">
+                <label
+                  className={`press group relative grid h-16 w-16 cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-line-strong bg-sunken text-accent-text transition-colors hover:border-accent hover:bg-tint focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent sm:h-20 sm:w-20 ${
+                    source?.kind === "upload" ? "ring-2 ring-accent ring-offset-2 ring-offset-bg" : ""
                   }`}
+                  title="Upload your own photo"
                 >
-                  Take {i + 1}
-                </button>
-              ))}
-            </div>
-          )}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={onUpload} disabled={locked} aria-label="Upload your own photo (JPEG, PNG, or WebP)" className="absolute inset-0 cursor-pointer opacity-0" />
+                  <span className="flex flex-col items-center gap-0.5 text-[0.65rem] font-semibold">
+                    <Icon name="upload" className="h-5 w-5 transition-transform group-hover:scale-110" />
+                    Upload
+                  </span>
+                </label>
+              </li>
+              {LIBRARY.map((item) => {
+                const isSelected = source?.kind === "library" && source.item.file === item.file;
+                return (
+                  <li key={item.file} className="shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => chooseLibrary(item)}
+                      disabled={locked}
+                      aria-pressed={isSelected}
+                      aria-label={item.title}
+                      title={item.title}
+                      className={`press relative block h-16 w-16 overflow-hidden rounded-2xl bg-tint-2 transition-all sm:h-20 sm:w-20 ${
+                        isSelected ? "scale-[0.96] ring-2 ring-accent shadow-[var(--shadow-glow)] ring-offset-2 ring-offset-bg" : "hover:scale-[1.04]"
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={libraryUrl(item.file)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                      {isSelected && (
+                        <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-accent text-on-accent" aria-hidden="true">
+                          <Icon name="check" className="h-3 w-3" strokeWidth={3} />
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+        {challenge && (
+          <p className="rounded-2xl bg-tint px-4 py-3 text-sm text-ink-2">
+            Today&apos;s photo: <span className="font-semibold text-accent-text">{challenge.title}</span>
+            {challenge.theme ? ` · ${challenge.theme}` : ""}
+          </p>
+        )}
 
-          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Remix this caption">
-            <span className="text-sm font-medium text-muted">Remix:</span>
-            {REMIX_MODES.map((mode) => (
+        {/* Voice */}
+        <div className="flex flex-col gap-2">
+          <p id="voice-label" className="label !mb-0">2 · Voice</p>
+          <div role="group" aria-labelledby="voice-label" className="flex flex-wrap gap-2">
+            {VOICES.map((v) => (
               <button
-                key={mode.id}
+                key={v.id}
                 type="button"
-                disabled={locked || !canRemix}
-                onClick={() => void remix(mode.id)}
-                className="press min-h-9 rounded-full border border-line bg-surface px-3 text-sm font-medium hover:bg-tint disabled:cursor-not-allowed disabled:opacity-55"
+                aria-pressed={voice === v.id}
+                title={v.blurb}
+                disabled={locked}
+                onClick={() => setVoice(v.id)}
+                className={`press inline-flex min-h-9 items-center gap-2 rounded-full border px-3.5 text-sm transition-colors ${
+                  voice === v.id
+                    ? "border-accent bg-tint font-semibold text-accent-text shadow-[var(--shadow-sm)]"
+                    : "border-line-strong bg-surface-solid font-medium text-muted hover:border-accent hover:text-ink"
+                }`}
               >
-                {mode.label}
+                <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full" style={{ background: `linear-gradient(135deg, ${voiceTheme(v.id).from}, ${voiceTheme(v.id).to})` }} />
+                {v.label}
               </button>
             ))}
-            {current && current.history.length > 0 && (
-              <button
-                type="button"
-                onClick={undoRemix}
-                disabled={locked}
-                className="min-h-9 rounded-full px-3 text-sm font-medium text-accent-text underline-offset-2 hover:underline"
-              >
-                Undo
-              </button>
-            )}
-          </div>
-          {!canRemix && (
-            <p className="-mt-1 text-sm text-muted">
-              Remixing is for members.{" "}
-              <button type="button" onClick={() => void signInToPublish()} className="font-semibold text-accent-text underline-offset-2 hover:underline">
-                Sign in to unlock it
-              </button>
-              .
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Photo source */}
-      {!challenge && (
-        <div className="flex flex-col gap-2">
-          <p id="photo-label" className="text-sm font-medium">
-            Photo
-          </p>
-          <ul aria-labelledby="photo-label" className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 py-1">
-            <li className="shrink-0">
-              <label
-                className={`press relative grid h-16 w-16 cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-glow/60 bg-tint text-accent-text hover:border-glow focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent sm:h-20 sm:w-20 ${
-                  source?.kind === "upload" ? "ring-2 ring-accent ring-offset-2 ring-offset-bg" : ""
-                }`}
-                title="Upload your own photo"
-              >
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={onUpload}
-                  disabled={locked}
-                  aria-label="Upload your own photo (JPEG, PNG, or WebP)"
-                  className="absolute inset-0 cursor-pointer opacity-0"
-                />
-                <span className="flex flex-col items-center gap-0.5 text-[0.65rem] font-semibold">
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                    <path d="M12 16V5m0 0l-4 4m4-4l4 4M5 19h14" />
-                  </svg>
-                  Upload
-                </span>
-              </label>
-            </li>
-            {LIBRARY.map((item) => {
-              const isSelected = source?.kind === "library" && source.item.file === item.file;
-              return (
-                <li key={item.file} className="shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => chooseLibrary(item)}
-                    disabled={locked}
-                    aria-pressed={isSelected}
-                    aria-label={item.title}
-                    title={item.title}
-                    className={`press relative block h-16 w-16 overflow-hidden rounded-2xl bg-tint-2 sm:h-20 sm:w-20 ${
-                      isSelected ? "ring-2 ring-accent ring-offset-2 ring-offset-bg" : "hover:opacity-90"
-                    }`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={libraryUrl(item.file)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-      {challenge && (
-        <p className="rounded-xl bg-tint px-3 py-2 text-sm text-accent-text">
-          Today&apos;s photo: <span className="font-semibold">{challenge.title}</span>
-          {challenge.theme ? ` · ${challenge.theme}` : ""}
-        </p>
-      )}
-
-      {/* Voice */}
-      <div className="flex flex-col gap-2">
-        <p id="voice-label" className="text-sm font-medium">
-          Voice
-        </p>
-        <div role="group" aria-labelledby="voice-label" className="flex flex-wrap gap-2">
-          {VOICES.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              aria-pressed={voice === v.id}
-              title={v.blurb}
-              disabled={locked}
-              onClick={() => setVoice(v.id)}
-              className={`press min-h-9 rounded-full border px-3.5 text-sm ${
-                voice === v.id
-                  ? "border-accent bg-tint font-semibold text-accent-text"
-                  : "border-line bg-surface font-medium text-muted hover:text-ink"
-              }`}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="studio-direction" className="text-sm font-medium">
-          Steer the joke <span className="font-normal text-muted">(optional)</span>
-        </label>
-        <input
-          id="studio-direction"
-          value={direction}
-          onChange={(e) => setDirection(e.target.value)}
-          maxLength={200}
-          disabled={locked}
-          placeholder="roast this · make it dramatic · focus on the guy in the background"
-          className="field"
-        />
-      </div>
-
-      {notice && (
-        <p role="status" className="rounded-xl bg-tint px-3 py-2 text-sm font-medium text-accent-text">
-          {notice}
-        </p>
-      )}
-      {error && (
-        <p role="alert" className="rounded-xl bg-coral-tint px-3 py-2 text-sm text-coral-text">
-          {error}
-          {!signedIn && /Sign in/.test(error) && (
-            <>
-              {" "}
-              <Link href="/login?next=/studio" className="font-semibold underline">
-                Sign in
-              </Link>
-            </>
-          )}
-        </p>
-      )}
-
-      {published ? (
-        <div role="status" className="flex flex-col gap-3 rounded-2xl bg-tint p-4">
-          <p className="font-display text-lg font-bold text-accent-text">
-            {published.drop ? "You're in today's Drop!" : "Published!"}
-          </p>
-          <p className="text-sm text-muted">
-            {published.drop
-              ? "Your caption is live. Voting stays open until the day ends."
-              : published.shared
-                ? "It's in the feed, and shared publicly on your choice."
-                : "It's in the feed for other members. Only members can see it."}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Link href={published.drop ? "/drop" : "/feed"} className="btn-primary press">
-              {published.drop ? "See the Drop" : "See it in the feed"}
-            </Link>
-            {published.shared && (
-              <Link href={`/c/${published.id}`} className="btn-quiet press">
-                Open public page
-              </Link>
-            )}
-            {!challenge && (
-              <button
-                type="button"
-                className="btn-quiet press"
-                onClick={() => {
-                  resetResult();
-                }}
-              >
-                Make another
-              </button>
-            )}
           </div>
         </div>
-      ) : (
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="studio-direction" className="label !mb-0">
+            3 · Steer the joke <span className="font-normal normal-case tracking-normal">(optional)</span>
+          </label>
+          <input
+            id="studio-direction"
+            value={direction}
+            onChange={(e) => setDirection(e.target.value)}
+            maxLength={200}
+            disabled={locked}
+            placeholder="roast this · make it dramatic · focus on the guy in the background"
+            className="field"
+          />
+        </div>
+
         <div className="flex flex-col gap-3">
-          {takes && current && (
-            <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-3.5">
-              {signedIn ? (
-                <>
-                  {!challenge && (
-                    <label className="flex cursor-pointer items-start gap-3 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={share}
-                        onChange={(e) => setShare(e.target.checked)}
-                        className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--accent)]"
-                      />
-                      <span>
-                        <span className="font-semibold">Also share publicly</span>
-                        <span className="block text-muted">
-                          Anyone, even without an account, could see this photo, caption and your
-                          first name. Leave it off to share with members only.
-                        </span>
-                      </span>
-                    </label>
-                  )}
-                  <button type="button" onClick={() => void publish()} disabled={locked} className="btn-primary press w-full sm:w-auto sm:self-start">
-                    {busy === "publish" ? "Publishing…" : challenge ? "Enter today's Drop" : "Publish this caption"}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm text-muted">
-                    Publishing, voting and saving need a free account. Your captions will be waiting
-                    for you after you sign in.
-                  </p>
-                  <button type="button" onClick={() => void signInToPublish()} className="btn-primary press w-full sm:w-auto sm:self-start">
-                    Sign in to publish
-                  </button>
-                </>
+          <button
+            type="button"
+            onClick={() => void generate()}
+            disabled={locked || !source}
+            className={`${takes ? "btn-quiet" : "btn-primary"} btn-lg press w-full`}
+          >
+            {generating ? (
+              <>
+                <span className="spinner" /> Finding the joke…
+              </>
+            ) : (
+              <>
+                <Icon name="spark" className="h-[1.1rem] w-[1.1rem]" /> {takes ? "Generate again" : "Generate 3 captions"}
+              </>
+            )}
+          </button>
+          <p className="text-center text-sm text-muted">
+            {signedIn
+              ? remaining !== null
+                ? `${remaining} AI ${remaining === 1 ? "request" : "requests"} left today`
+                : "Three takes per request."
+              : remaining !== null
+                ? `${remaining} free ${remaining === 1 ? "caption" : "captions"} left today`
+                : "A few free captions a day. No sign-in needed."}
+          </p>
+        </div>
+      </section>
+
+      {/* RIGHT: the live preview, with the Caption Creature */}
+      <div className="no-scrollbar lg:sticky lg:top-[5.25rem] lg:-m-3 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:overscroll-contain lg:p-3">
+        <section ref={preview} className="panel flex scroll-mt-24 flex-col gap-5 p-5 sm:p-6" aria-label="Live preview">
+          <Guide guidance={guidance} eyebrow="Live preview" />
+
+          <div>
+            <Photo src={previewSrc} alt={previewAlt} size={challenge ? "drop" : "studio"} fixed loading="eager" fallback="Choose a photo on the left">
+              {generating && <span className="scan" aria-hidden="true" />}
+              {generating && (
+                <span className="liquid absolute left-3 top-3 z-[2] inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-ink">
+                  <span className="spinner !h-3 !w-3" /> Reading the photo
+                </span>
               )}
-              <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => void copyCaption()} className="btn-quiet press min-h-9 px-3 text-sm">
-                  {copied ? "Copied!" : "Copy caption"}
-                </button>
-                <button type="button" onClick={() => void saveCard()} disabled={locked} className="btn-quiet press min-h-9 px-3 text-sm">
-                  {busy === "card" ? "Making card…" : "Download card"}
-                </button>
+            </Photo>
+            <div className={`liquid liquid-strong relative z-[1] mx-3 -mt-10 rounded-2xl px-5 pb-5 pt-4 ${current ? "" : "!border-dashed"}`}>
+              {current ? (
+                <p key={`${selected}-${current.text}`} aria-live="polite" className="plate-in caption-text text-[1.35rem] sm:text-2xl">
+                  {current.text}
+                </p>
+              ) : (
+                <p aria-live="polite" className="text-base font-medium text-accent-text">
+                  {generating ? "Finding the joke…" : "Your caption lands here"}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Three takes + remix */}
+          {takes && takes.length > 0 && (
+            <div className="flex flex-col gap-3">
+              {takes.length > 1 && (
+                <div role="group" aria-label="Caption takes" className="grid grid-flow-col gap-1 rounded-2xl bg-sunken p-1 ring-1 ring-line">
+                  {takes.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setSelected(i)}
+                      aria-pressed={selected === i}
+                      aria-label={`Take ${i + 1} of ${takes.length}`}
+                      className={`min-h-9 rounded-xl px-4 text-sm transition-all ${
+                        selected === i ? "bg-surface-solid font-semibold text-accent-text shadow-[var(--shadow-sm)]" : "font-medium text-muted hover:text-ink"
+                      }`}
+                    >
+                      Take {i + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Remix this caption">
+                <span className="text-sm font-medium text-muted">Remix:</span>
+                {REMIX_MODES.map((mode) => (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    disabled={locked || !canRemix}
+                    onClick={() => void remix(mode.id)}
+                    className="chip press !px-3 !py-1.5 transition-colors hover:bg-tint-2 disabled:cursor-not-allowed disabled:opacity-55"
+                  >
+                    <Icon name="wand" className="h-3 w-3" /> {mode.label}
+                  </button>
+                ))}
+                {current && current.history.length > 0 && (
+                  <button type="button" onClick={undoRemix} disabled={locked} className="btn-ghost btn-sm">
+                    <Icon name="retry" className="h-3.5 w-3.5" /> Undo
+                  </button>
+                )}
               </div>
+              {!canRemix && (
+                <p className="-mt-1 text-sm text-muted">
+                  Remixing is for members.{" "}
+                  <button type="button" onClick={() => void signInToPublish()} className="font-semibold text-accent-text underline-offset-2 hover:underline">
+                    Sign in to unlock it
+                  </button>
+                  .
+                </p>
+              )}
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void generate()}
-              disabled={locked || !source}
-              className={`${takes ? "btn-quiet" : "btn-primary"} press w-full sm:w-auto`}
-            >
-              {generating ? "Finding the joke…" : takes ? "Generate again" : "Generate 3 captions"}
-            </button>
-            <p className="text-sm text-muted">
-              {signedIn
-                ? remaining !== null
-                  ? `${remaining} AI ${remaining === 1 ? "request" : "requests"} left today`
-                  : "Three takes per request."
-                : remaining !== null
-                  ? `${remaining} free ${remaining === 1 ? "caption" : "captions"} left today`
-                  : "A few free captions a day. No sign-in needed."}
+          {notice && (
+            <p role="status" className="rounded-2xl bg-tint px-4 py-3 text-sm font-medium text-accent-text">
+              {notice}
             </p>
-          </div>
-        </div>
-      )}
+          )}
+          {error && (
+            <p role="alert" className="rounded-2xl bg-coral-tint px-4 py-3 text-sm font-medium text-coral-text">
+              {error}
+              {!signedIn && /Sign in/.test(error) && (
+                <>
+                  {" "}
+                  <Link href="/login?next=/studio" className="font-semibold underline">
+                    Sign in
+                  </Link>
+                </>
+              )}
+            </p>
+          )}
+
+          {published ? (
+            <div role="status" className="result-card flex flex-col gap-4 p-5">
+              <p className="eyebrow flex items-center gap-1.5">
+                <Icon name="spark" className="h-3.5 w-3.5" /> {published.drop ? "You're in today's Drop" : "Published"}
+              </p>
+              {current && <p className="caption-text text-2xl">{current.text}</p>}
+              <p className="text-sm text-muted">
+                {published.drop
+                  ? "Your caption is live. Voting stays open until the day ends."
+                  : published.shared
+                    ? "It's in the feed, and shared publicly on your choice."
+                    : "It's in the feed for other members. Only members can see it."}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link href={published.drop ? "/drop" : "/feed"} className="btn-primary btn-sm press">
+                  {published.drop ? "See the Drop" : "See it in the feed"}
+                </Link>
+                {published.shared && (
+                  <Link href={`/c/${published.id}`} className="btn-quiet btn-sm press">
+                    Open public page
+                  </Link>
+                )}
+                {!challenge && (
+                  <button type="button" className="btn-ghost btn-sm press" onClick={() => resetResult()}>
+                    <Icon name="retry" /> Make another
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            takes &&
+            current && (
+              <div className="flex flex-col gap-3 rounded-2xl bg-sunken p-4 ring-1 ring-line">
+                {signedIn ? (
+                  <>
+                    {!challenge && (
+                      <label className="flex cursor-pointer items-start gap-3 text-sm">
+                        <input type="checkbox" checked={share} onChange={(e) => setShare(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--accent)]" />
+                        <span>
+                          <span className="font-semibold">Also share publicly</span>
+                          <span className="block text-muted">
+                            Anyone, even without an account, could see this photo, caption and your first name. Leave it off to share with members only.
+                          </span>
+                        </span>
+                      </label>
+                    )}
+                    <button type="button" onClick={() => void publish()} disabled={locked} className="btn-primary press w-full sm:w-auto sm:self-start">
+                      {busy === "publish" ? "Publishing…" : challenge ? "Enter today's Drop" : "Publish this caption"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted">Publishing, voting and saving need a free account. Your captions will be waiting for you after you sign in.</p>
+                    <button type="button" onClick={() => void signInToPublish()} className="btn-primary press w-full sm:w-auto sm:self-start">
+                      Sign in to publish
+                    </button>
+                  </>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => void copyCaption()} className="btn-quiet btn-sm press">
+                    <Icon name={copied ? "check" : "copy"} /> {copied ? "Copied!" : "Copy caption"}
+                  </button>
+                  <button type="button" onClick={() => void saveCard()} disabled={locked} className="btn-quiet btn-sm press">
+                    <Icon name="photo" /> {busy === "card" ? "Making card…" : "Download card"}
+                  </button>
+                </div>
+              </div>
+            )
+          )}
+        </section>
+      </div>
     </div>
   );
 }

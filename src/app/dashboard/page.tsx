@@ -2,7 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "@/components/logout-button";
+import { EmptyState } from "@/components/ui";
+import { Guide } from "@/components/guide";
 import { SignInGate } from "@/components/sign-in-gate";
+import { dashboardGuidance } from "@/lib/guidance";
 import { signImages, toFeedPost, type PostRow } from "@/lib/posts";
 import { MyCaptions, type MyItem } from "./my-captions";
 
@@ -68,14 +71,20 @@ export default async function DashboardPage() {
   const shared = items.filter((i) => i.post.isPublic).length;
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-8 px-4 pb-24 pt-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold sm:text-4xl">Hi, {profile.first_name}</h1>
-          <p className="mt-1 text-sm text-muted">Your captions, with their real scores and Arena results.</p>
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-4 py-8 sm:px-6 sm:py-12">
+      <section className="stage" aria-labelledby="dash-heading">
+        <div className="stage-beam" aria-hidden="true" />
+        <div className="relative flex flex-wrap items-center justify-between gap-6 p-6 sm:p-10">
+          <Guide
+            guidance={dashboardGuidance({ posts: items.length, firstName: profile.first_name })}
+            eyebrow="Your captions"
+            id="dash-heading"
+            as="h1"
+            size="lg"
+          />
+          <LogoutButton />
         </div>
-        <LogoutButton />
-      </div>
+      </section>
 
       <dl className="grid grid-cols-3 gap-3">
         {[
@@ -83,9 +92,9 @@ export default async function DashboardPage() {
           ["Total score", String(totalScore)],
           ["Arena wins", String(totalWins)],
         ].map(([label, value]) => (
-          <div key={label} className="glass rounded-2xl p-4">
-            <dt className="text-xs font-semibold uppercase tracking-wider text-muted">{label}</dt>
-            <dd className="mt-1 text-2xl font-bold tabular-nums">{value}</dd>
+          <div key={label} className="panel p-4 sm:p-5">
+            <dt className="eyebrow">{label}</dt>
+            <dd className="mt-1 font-display text-3xl tabular-nums">{value}</dd>
           </div>
         ))}
       </dl>
@@ -98,11 +107,9 @@ export default async function DashboardPage() {
       {items.length > 0 ? (
         <MyCaptions items={items} />
       ) : (
-        <div className="glass flex flex-col items-center gap-4 rounded-3xl px-6 py-12 text-center">
-          <p className="text-lg font-semibold">No captions yet.</p>
-          <p className="text-sm text-muted">Make your first one in the Studio.</p>
-          <Link href="/studio" className="btn-primary press">Open the Studio</Link>
-        </div>
+        <EmptyState mood="idle" title="No captions yet" action={<Link href="/studio" className="btn-primary press">Open the Studio</Link>}>
+          Make your first one in the Studio.
+        </EmptyState>
       )}
     </main>
   );

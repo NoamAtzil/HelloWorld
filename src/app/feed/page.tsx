@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Icon } from "@/components/icons";
+import { PageHeader } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { SignInGate } from "@/components/sign-in-gate";
 import { toFeedPost, signImages, type PostRow } from "@/lib/posts";
@@ -10,7 +12,7 @@ export default async function FeedPage(props: PageProps<"/feed">) {
   const { data: auth } = await supabase.auth.getClaims();
   if (!auth?.claims) {
     return (
-      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-4 py-10">
+      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col justify-center px-4 py-10 sm:px-6">
         <SignInGate title="The feed is for members" next="/feed">
           See every caption, vote on what lands, and share your favorites.
         </SignInGate>
@@ -38,16 +40,17 @@ export default async function FeedPage(props: PageProps<"/feed">) {
   const posts = rows.map((row) => toFeedPost(row, urls, myIds));
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-8 px-4 pb-24 pt-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold sm:text-4xl">The feed</h1>
-          <p className="mt-1 text-sm text-muted">Every caption, scored by the community.</p>
-        </div>
-        <Link href="/studio" className="btn-primary press">
-          Make a caption
-        </Link>
-      </div>
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8 sm:px-6 sm:py-12">
+      <PageHeader
+        eyebrow="Community"
+        title="The feed"
+        description="Every caption, scored by the community."
+        actions={
+          <Link href="/studio" className="btn-primary press">
+            <Icon name="spark" /> Make a caption
+          </Link>
+        }
+      />
       <FeedClient posts={posts} initialSort={initialSort} loadFailed={!!error} />
     </main>
   );
