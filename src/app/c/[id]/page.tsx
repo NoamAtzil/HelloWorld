@@ -28,10 +28,10 @@ export async function generateMetadata(props: PageProps<"/c/[id]">): Promise<Met
   const post = await load((await props.params).id);
   if (!post) return { title: "Caption not found" };
   return {
-    title: `“${post.content}” — caption`,
+    title: `“${post.content}”`,
     description: `A caption by ${post.author_name}.`,
-    openGraph: { title: post.content, description: `A caption by ${post.author_name}.`, type: "article" },
-    twitter: { card: "summary_large_image", title: post.content },
+    openGraph: { title: `${post.content} — why so serious?`, description: `A caption by ${post.author_name}.`, type: "article", siteName: "why so serious?" },
+    twitter: { card: "summary_large_image", title: `${post.content} — why so serious?` },
   };
 }
 

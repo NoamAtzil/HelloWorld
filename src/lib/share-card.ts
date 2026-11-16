@@ -74,20 +74,17 @@ export async function renderCard(imageUrl: string, caption: string): Promise<Blo
   ctx.textBaseline = "top";
   lines.forEach((text, i) => ctx.fillText(text, plateX + padX, plateY + 52 + i * lineH));
 
-  // Wordmark.
-  ctx.font = "800 44px system-ui, -apple-system, 'Segoe UI', sans-serif";
+  // Wordmark: wss? (the compact "why so serious?").
+  ctx.font = "800 52px system-ui, -apple-system, 'Segoe UI', sans-serif";
   ctx.fillStyle = "#1f1712";
-  const brand = "capti";
-  ctx.fillText(brand, 60, H - 96);
-  const bx = 60 + ctx.measureText(brand).width;
+  ctx.fillText("wss", 60, H - 100);
+  const qx = 60 + ctx.measureText("wss").width + 4;
   ctx.save();
-  ctx.translate(bx + 20, H - 96);
-  ctx.scale(1.5, 1);
+  ctx.translate(qx, H - 100);
+  ctx.rotate(-0.16);
   ctx.fillStyle = "#c2410c";
-  ctx.fillText("o", 0, 0);
+  ctx.fillText("?", 0, 0);
   ctx.restore();
-  ctx.fillStyle = "#1f1712";
-  ctx.fillText("n", bx + 20 + ctx.measureText("o").width * 1.5, H - 96);
 
   return new Promise((resolve, reject) =>
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("render failed"))), "image/png"),

@@ -15,7 +15,7 @@ import { signImages, toFeedPost, type PostRow } from "@/lib/posts";
 import { DropEntries } from "./drop-entries";
 
 export const metadata: Metadata = {
-  title: "Daily Drop — caption",
+  title: "Daily Drop",
   description: "One photo a day. Everyone captions it. Tonight, one wins.",
 };
 

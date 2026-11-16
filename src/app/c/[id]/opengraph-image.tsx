@@ -2,13 +2,13 @@ import { ImageResponse } from "next/og";
 import { createClient } from "@/lib/supabase/server";
 import { sharedImageUrl } from "@/lib/public-url";
 
-export const alt = "A caption on caption";
+export const alt = "A caption on why so serious?";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const id = Number((await params).id);
-  let content = "caption";
+  let content = "why so serious?";
   let image: string | null = null;
   if (Number.isInteger(id) && id > 0) {
     const supabase = await createClient();
@@ -26,6 +26,24 @@ export default async function Image({ params }: { params: Promise<{ id: string }
         {image && (
           <img src={image} alt="" width={1200} height={630} style={{ width: 1200, height: 630, objectFit: "cover" }} />
         )}
+        <div
+          style={{
+            position: "absolute",
+            left: 48,
+            top: 40,
+            display: "flex",
+            padding: "10px 26px 12px",
+            background: "rgba(255,240,227,0.95)",
+            border: "3px solid rgba(255,122,26,0.5)",
+            borderRadius: 999,
+            fontSize: 40,
+            fontWeight: 800,
+            color: "#1f1712",
+          }}
+        >
+          wss
+          <span style={{ color: "#c2410c", display: "flex" }}>?</span>
+        </div>
         <div
           style={{
             position: "absolute",

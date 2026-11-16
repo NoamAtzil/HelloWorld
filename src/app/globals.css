@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./studio.css";
+@import "./wordmark.css";
 
 /*
   Design system: Ember Studio (shared with HelloWorld-PromptChains)

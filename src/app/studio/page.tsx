@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Studio } from "@/components/studio";
 
 export const metadata: Metadata = {
-  title: "Studio — caption",
+  title: "Studio",
   description: "Pick a photo and a voice, get three captions, remix, and publish your favorite.",
 };
 

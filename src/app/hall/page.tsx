@@ -9,7 +9,7 @@ import { signImages } from "@/lib/posts";
 import { voiceLabel } from "@/lib/voices";
 
 export const metadata: Metadata = {
-  title: "Hall of Fame — caption",
+  title: "Hall of Fame",
   description: "The best captions, Arena champions, and top creators.",
 };
 

@@ -1,0 +1,260 @@
+/* why so serious? -> wss?  The animated wordmark. See components/wordmark.tsx.
+   Rest = plain inline flow. Expanded = words pinned absolutely (by JS, at their
+   measured rest spots) and moved with transforms only, so the header never
+   shifts. Everything is keyed on data-step on .wss. */
+
+@layer components {
+  .wss {
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --dx: 1.7em; /* how far each step is indented */
+    --dy: 1.5em; /* and how far down */
+    --s: 1.4; /* the unfolded words are larger than the compact mark */
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    isolation: isolate;
+    font-family: var(--font-brand);
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--ink);
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    margin-right: 0.35rem;
+  }
+  .wss-line {
+    position: relative;
+    display: inline-flex;
+    align-items: baseline;
+    white-space: nowrap;
+    /* a little air for the tilted question mark */
+    padding-right: 0.04em;
+  }
+  .wss-word,
+  .wss-mini,
+  .wss-big {
+    pointer-events: none;
+  }
+  .wss-word {
+    position: relative;
+    display: inline-flex;
+    align-items: baseline;
+    transform-origin: 0 50%;
+  }
+
+  /* ---- the step pill behind each unfolded word --------------------------- */
+  .wss-word::before {
+    content: "";
+    position: absolute;
+    inset: -0.12em -0.3em -0.14em -0.3em;
+    z-index: -1;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--surface-solid) 90%, transparent);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    opacity: 0;
+    transform: scale(0.6, 0.4);
+    transform-origin: 0 50%;
+    transition:
+      opacity 420ms ease calc(var(--i) * 110ms),
+      transform 700ms var(--ease) calc(var(--i) * 110ms);
+  }
+  .wss[data-open="true"] .wss-word::before {
+    opacity: 1;
+    transform: none;
+  }
+  .wss[data-step="close"] .wss-word::before {
+    transition-delay: calc((2 - var(--i)) * 70ms);
+    transition-duration: 380ms, 480ms;
+  }
+
+  /* ---- letters that grow out of the initials ----------------------------- */
+  .wss-suf {
+    display: inline-grid;
+    grid-template-columns: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-columns 820ms var(--ease) calc(var(--i) * 110ms + 90ms),
+      opacity 380ms ease calc(var(--i) * 110ms + 90ms);
+  }
+  .wss-suf > span {
+    min-width: 0;
+    overflow: hidden;
+    padding-block: 0.14em;
+    margin-block: -0.14em;
+  }
+  .wss[data-open="true"] .wss-suf {
+    grid-template-columns: 1fr;
+    opacity: 1;
+  }
+  .wss[data-step="close"] .wss-suf {
+    transition-delay: calc((2 - var(--i)) * 70ms);
+    transition-duration: 640ms, 300ms;
+  }
+
+  .wss-q {
+    display: inline-block;
+    margin-left: 0.02em;
+    color: var(--accent-text);
+    background: linear-gradient(135deg, var(--btn-from, var(--accent-text)), var(--accent-text));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transform: rotate(-9deg);
+    transform-origin: 30% 90%;
+  }
+
+  /* ---- unfolding: words pinned where they were, then stepped down -------- */
+  .wss:not([data-step="rest"]) .wss-word {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    width: max-content;
+    transition: transform 900ms var(--ease) calc(var(--i) * 110ms);
+    will-change: transform;
+  }
+  .wss[data-open="true"] .wss-word {
+    transform: translate(calc(var(--i) * var(--dx) - var(--x)), calc(var(--i) * var(--dy))) scale(var(--s));
+  }
+  .wss[data-step="close"] .wss-word {
+    transform: none;
+    transition-duration: 760ms;
+    transition-delay: calc((2 - var(--i)) * 70ms);
+  }
+  /* the words overlay the page; the pills sit above whatever is under them */
+  .wss:not([data-step="rest"]) {
+    z-index: 5;
+  }
+
+  /* ---- the small creature, beside "so" ----------------------------------- */
+  .wss-mini {
+    position: absolute;
+    left: calc(100% + 0.5em);
+    bottom: 0.04em;
+    width: 1em;
+    transform-origin: 20% 100%;
+    transform: scale(0) rotate(-14deg);
+    transition: transform 520ms var(--spring);
+    /* looks down and to the right, toward "serious?" */
+    --gx: 0.8;
+    --gy: 0.9;
+  }
+  .wss[data-step="peek"] .wss-mini,
+  .wss[data-step="react"] .wss-mini {
+    transform: scale(1) rotate(0deg);
+  }
+  .wss[data-step="swap"] .wss-mini {
+    transform: scale(0) rotate(10deg);
+    transition: transform 320ms cubic-bezier(0.5, 0, 0.9, 0.4);
+  }
+  .wss-hop {
+    display: block;
+    transform-origin: 50% 100%;
+  }
+  .wss[data-step="react"] .wss-hop {
+    animation: wss-hop 900ms var(--ease) both;
+  }
+  @keyframes wss-hop {
+    0% {
+      transform: translateY(0) rotate(0);
+    }
+    22% {
+      transform: translateY(-0.42em) rotate(-9deg) scale(0.96, 1.06);
+    }
+    40% {
+      transform: translateY(0) rotate(0) scale(1.06, 0.92);
+    }
+    58% {
+      transform: translateY(-0.24em) rotate(7deg);
+    }
+    80%,
+    100% {
+      transform: translateY(0) rotate(0);
+    }
+  }
+
+  /* ---- the larger creature, beside "serious?", winking ------------------- */
+  .wss-big {
+    position: absolute;
+    left: calc(100% + 0.35em);
+    bottom: -0.55em;
+    width: 2.05em;
+    transform-origin: 0% 80%;
+    transform: scale(0) rotate(-10deg);
+    transition: transform 360ms cubic-bezier(0.5, 0, 0.9, 0.4);
+    --gx: -0.2;
+    --gy: 0.1;
+  }
+  .wss[data-step="swap"] .wss-big {
+    transform: scale(1) rotate(0deg);
+    transition: transform 640ms var(--spring) 160ms;
+  }
+  /* The wink: the existing right-eye lid closes, brow lifts, antenna flares. */
+  .wss[data-step="swap"] .wss-big .cr-lid.r {
+    animation: wss-wink 900ms var(--ease) 760ms both;
+  }
+  .wss[data-step="swap"] .wss-big .cr-brow.r {
+    animation: wss-brow 900ms var(--ease) 760ms both;
+  }
+  .wss[data-step="swap"] .wss-big .cr-glow {
+    animation: wss-flare 1100ms ease-in-out 700ms both;
+  }
+  .wss[data-step="swap"] .wss-big .cr-torso {
+    animation: wss-lean 1100ms var(--ease) 700ms both;
+  }
+  @keyframes wss-wink {
+    0%,
+    100% {
+      transform: scaleY(0.36);
+    }
+    22%,
+    64% {
+      transform: scaleY(1.02);
+    }
+  }
+  @keyframes wss-brow {
+    0%,
+    100% {
+      transform: translateY(-5px) rotate(-9deg);
+    }
+    22%,
+    64% {
+      transform: translateY(-9px) rotate(-16deg);
+    }
+  }
+  @keyframes wss-flare {
+    0%,
+    100% {
+      opacity: 0.42;
+    }
+    35%,
+    55% {
+      opacity: 1;
+    }
+  }
+  @keyframes wss-lean {
+    0%,
+    100% {
+      transform: rotate(3deg) scale(1.035);
+    }
+    30%,
+    60% {
+      transform: rotate(-6deg) scale(1.06);
+    }
+  }
+
+  /* ---- reduced motion: a stable, static wordmark ------------------------- */
+  @media (prefers-reduced-motion: reduce) {
+    .wss *,
+    .wss *::before {
+      transition: none !important;
+      animation: none !important;
+    }
+    .wss-mini,
+    .wss-big {
+      display: none;
+    }
+  }
+}

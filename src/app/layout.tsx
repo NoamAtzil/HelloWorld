@@ -16,9 +16,11 @@ const bricolage = Bricolage_Grotesque({ variable: "--font-bricolage", subsets: [
 const fraunces = Fraunces({ variable: "--font-fraunces", subsets: ["latin"], axes: ["opsz", "SOFT"], display: "swap" });
 
 export const metadata: Metadata = {
-  title: "caption — photos in, funny captions out",
+  title: { default: "why so serious? — photos in, funny captions out", template: "%s — why so serious?" },
   description:
     "Upload a photo, get a funny AI caption, and let the feed vote on whether it landed.",
+  applicationName: "why so serious?",
+  openGraph: { siteName: "why so serious?", type: "website" },
 };
 
 // Runs before first paint: resolves the saved preference (light | dark |

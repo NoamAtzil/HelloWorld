@@ -7,7 +7,7 @@ import { ArenaClient } from "./arena-client";
 import { loadArenaPair } from "./pair";
 
 export const metadata: Metadata = {
-  title: "Arena — caption",
+  title: "Arena",
   description: "Two captions, one photo. Pick the funnier one.",
 };
 
