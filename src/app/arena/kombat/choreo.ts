@@ -60,6 +60,10 @@ export type Actor = {
   s: { x: number; y: number; r: number; sx: number; sy: number };
 };
 
+export type SfxName =
+  | "windup" | "whoosh_in" | "punch" | "ko_hit" | "launch" | "whoosh_up" | "land" | "spin" | "kick" | "fly_away"
+  | "poof" | "twinkle" | "boing" | "hammer_swing" | "bonk" | "ring";
+
 export type Fx = {
   burst(x: number, y: number): void;
   sparks(x: number, y: number, n?: number, colors?: string[], stars?: boolean): void;
@@ -89,6 +93,10 @@ export type Ctx = {
   headAnim(a: Actor, frames: Keyframe[], ms: number, easing?: string): Promise<void>;
   headPoint(a: Actor): { x: number; y: number };
   say(text: string, kind: "ko" | "small" | "finish" | "win"): void;
+  /** Play a sound effect now (a no-op when sound is off or locked). */
+  sfx(name: SfxName, opts?: { gain?: number; rate?: number; pan?: number }): void;
+  /** Run something after ms (scaled by the same speed as the animation). */
+  later(fn: () => void, ms: number): void;
   ref(mood: "idle" | "curious" | "inspired" | "proud" | "thinking" | "confused", jolt?: boolean): void;
   prop(a: Actor, on: boolean): void;
   dizzy(a: Actor, on: boolean): void;
@@ -114,6 +122,7 @@ async function uppercut(c: Ctx) {
   const d = W.dir;
   c.ref("curious");
   c.pose(L, POSE.brace, 260);
+  c.sfx("windup");
 
   // Anticipation: sink low, wind the fist back. Slow in, a beat of tension.
   c.pose(W, POSE.upWind, 380, SLOW_IN);
@@ -122,6 +131,7 @@ async function uppercut(c: Ctx) {
 
   // Lunge: a quick stretched slide in, fist still low.
   const dash = await approach(c, "uppercut");
+  c.sfx("whoosh_in", { gain: 0.8, rate: 1.55 });
   c.pose(W, { ...POSE.upWind, tr: -4, lf1: -50, lf2: 56, lb1: 34, lb2: -50 }, 120);
   await c.move(W, { x: dash, y: 0.4 * u, sx: 1.12, sy: 0.9, r: 4 * d }, 230, "cubic-bezier(0.3, 0.7, 0.3, 1)");
 
@@ -138,6 +148,12 @@ async function uppercut(c: Ctx) {
   c.fx.lines(hp.x, hp.y + 3 * u, d < 0);
   c.fx.shake("m");
   c.say("K.O.!", "ko");
+  c.sfx("punch");
+  c.sfx("ko_hit", { gain: 0.8 });
+  c.later(() => {
+    c.sfx("launch", { gain: 0.9 });
+    c.sfx("whoosh_up", { gain: 0.6 });
+  }, 70);
   c.ref("curious", true);
   c.pose(W, POSE.upTop, 120, SNAP);
 
@@ -164,6 +180,7 @@ async function uppercut(c: Ctx) {
   await c.wait(180);
   await c.move(W, { y: 0, sx: 1.12, sy: 0.86, r: 0 }, 360, "cubic-bezier(0.5, 0, 0.9, 0.5)");
   const foot = { x: cx(W, u), y: c.floorY };
+  c.sfx("land");
   c.fx.puff(foot.x - 2.4 * u, foot.y);
   c.fx.puff(foot.x + 2.4 * u, foot.y, 12);
   c.fx.shake("s");
@@ -185,6 +202,7 @@ async function roundhouse(c: Ctx) {
   const d = W.dir;
   c.ref("thinking");
   c.pose(L, POSE.brace, 260);
+  c.sfx("windup");
 
   // Anticipation: coil away from the target, weight on the back foot.
   c.pose(W, POSE.rWind, 420, SLOW_IN);
@@ -196,6 +214,7 @@ async function roundhouse(c: Ctx) {
   const dash = await approach(c, "roundhouse");
   c.ref("curious");
   c.pose(W, { ...POSE.rWind, tr: -8, b1: -120, b2: -60, f1: -120, f2: -60 }, 140);
+  c.sfx("spin");
   void c.spin(W, 440);
   void c.headAnim(W, [{ transform: "scaleX(var(--m)) rotate(0deg)" }, { transform: `scaleX(var(--m)) rotate(${d * 22}deg)` }, { transform: "scaleX(var(--m)) rotate(0deg)" }], 440);
   c.pose(W, POSE.rKick, 130, SNAP);
@@ -210,6 +229,9 @@ async function roundhouse(c: Ctx) {
   c.fx.lines(hp.x, hp.y + 1.5 * u, d < 0);
   c.fx.shake("m");
   c.say("ABSOLUTE DESTRUCTION!", "small");
+  c.sfx("kick");
+  c.sfx("ko_hit", { gain: 0.7 });
+  c.later(() => c.sfx("fly_away"), 40);
   c.ref("curious", true);
   void c.headAnim(L, [{ transform: "scaleX(var(--m)) rotate(0deg)" }, { transform: `scaleX(var(--m)) rotate(${d * 52}deg) scale(1.12, 0.86)` }, { transform: `scaleX(var(--m)) rotate(${d * 20}deg)` }], 360);
   c.pose(L, POSE.hurt, 90, SNAP);
@@ -235,6 +257,7 @@ async function roundhouse(c: Ctx) {
   await c.wait(420);
   c.pose(W, { ...POSE.rKick, lf1: -60, lf2: 40 }, 200, "ease-out");
   await c.move(W, { y: 0, r: 0, sx: 1.1, sy: 0.88 }, 280, "cubic-bezier(0.5, 0, 0.9, 0.5)");
+  c.sfx("land");
   c.fx.puff(cx(W, u) - 2.2 * u, c.floorY);
   c.fx.puff(cx(W, u) + 2.6 * u, c.floorY, 12);
   c.fx.shake("s");
@@ -258,6 +281,8 @@ async function bonk(c: Ctx) {
   // A comically oversized mallet appears out of nowhere.
   c.pose(W, POSE.reach, 240, SPRING);
   c.prop(W, true);
+  c.sfx("poof");
+  c.sfx("twinkle", { gain: 0.5 });
   const hand = (() => {
     const r = W.el.getBoundingClientRect();
     const s = W.el.parentElement!.getBoundingClientRect();
@@ -275,6 +300,7 @@ async function bonk(c: Ctx) {
   await c.wait(260);
 
   // Anticipation: hammer high overhead, leaning back, quivering with effort.
+  c.sfx("windup", { rate: 0.85 });
   c.pose(W, POSE.bonkUp, 460, SLOW_IN);
   await c.move(W, { x: -1.1 * u * d, y: 0.5 * u, sx: 1.05, sy: 0.92, r: -7 * d }, 460, SLOW_IN);
   for (let i = 0; i < 2; i++) {
@@ -286,9 +312,12 @@ async function bonk(c: Ctx) {
 
   // Two big bounds toward the target.
   const dash = await approach(c, "bonk");
+  c.sfx("boing", { gain: 0.45, rate: 1.25 });
   await c.move(W, { x: dash * 0.5, y: -2.6 * u, sx: 0.96, sy: 1.06, r: -2 * d }, 230, "cubic-bezier(0.3, 0.7, 0.4, 1)");
   await c.move(W, { x: dash * 0.5 + 0.6 * u * d, y: 0, sx: 1.1, sy: 0.9 }, 150, "ease-in");
+  c.sfx("boing", { gain: 0.45, rate: 1.0 });
   await c.wait(60);
+  c.sfx("hammer_swing");
   void c.move(W, { x: dash, y: -3 * u, sx: 0.94, sy: 1.1, r: 2 * d }, 260, "cubic-bezier(0.3, 0.7, 0.4, 1)");
   await c.wait(180);
 
@@ -302,6 +331,10 @@ async function bonk(c: Ctx) {
   c.fx.word(hp.x, hp.y - 9 * u, "BONK!");
   c.fx.shake("m");
   c.say("K.O.!", "ko");
+  c.sfx("bonk");
+  c.sfx("ko_hit", { gain: 0.6 });
+  c.later(() => c.sfx("twinkle", { gain: 0.6 }), 90);
+  c.later(() => c.sfx("ring", { gain: 0.5 }), 320);
   c.ref("confused", true);
   void c.headAnim(L, [{ transform: "scaleX(var(--m)) scale(1, 1)" }, { transform: "scaleX(var(--m)) scale(1.34, 0.5)" }, { transform: "scaleX(var(--m)) scale(1.24, 0.58)" }], 140);
   void c.move(L, { sx: 1.16, sy: 0.64, y: 0 }, 110, "ease-out");
@@ -312,6 +345,10 @@ async function bonk(c: Ctx) {
 
   // Boing: the squished fighter springs back, then tumbles away across the arena.
   c.fx.sparks(hp.x, hp.y - 2 * u, 8, ["#ffd23f"], true);
+  c.sfx("boing", { gain: 0.9, rate: 1.35 });
+  c.later(() => c.sfx("fly_away", { gain: 0.5 }), 480);
+  c.later(() => c.sfx("boing", { gain: 0.8, rate: 1.05 }), 540);
+  c.later(() => c.sfx("boing", { gain: 0.7, rate: 0.85 }), 960);
   void c.headAnim(L, [{ transform: "scaleX(var(--m)) scale(1.24, 0.58)" }, { transform: "scaleX(var(--m)) scale(0.82, 1.28)" }, { transform: "scaleX(var(--m)) scale(1, 1)" }], 240);
   c.pose(L, POSE.flail, 140);
   c.dizzy(L, false);
@@ -337,6 +374,7 @@ async function bonk(c: Ctx) {
 
   // The winner lands and gives the mallet a victorious twirl.
   await c.move(W, { y: 0, sx: 1.1, sy: 0.88 }, 220, "cubic-bezier(0.5, 0, 0.9, 0.5)");
+  c.sfx("land");
   c.fx.puff(cx(W, u) - 2.4 * u, c.floorY);
   c.fx.puff(cx(W, u) + 2.6 * u, c.floorY, 12);
   c.fx.shake("s");

@@ -1158,3 +1158,57 @@
     transform: skewX(-6deg);
   }
 }
+
+@layer components {
+  .kb-ann[data-kind="long"] {
+    font-size: clamp(1.7rem, 7.6cqw, 3.4rem);
+    white-space: normal;
+    width: 90%;
+    --ann-ms: 2500ms;
+  }
+  .kb-ann[data-kind="next"] {
+    font-size: clamp(2rem, 9cqw, 4.2rem);
+    white-space: normal;
+    width: 90%;
+    animation-duration: 1500ms;
+  }
+}
+
+@layer components {
+  /* "Press start": shown only when sound is on but the browser needs a tap first */
+  .kb-gate {
+    position: absolute;
+    inset: 0;
+    z-index: 36;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.9rem;
+    padding: 1rem;
+    border-radius: 1.6rem;
+    background:
+      radial-gradient(ellipse 70% 60% at 50% 40%, rgb(60 22 90 / 0.55), rgb(14 8 26 / 0.9));
+  }
+  .kb-press {
+    font-family: var(--font-brand);
+    font-weight: 800;
+    font-style: italic;
+    text-transform: uppercase;
+    font-size: clamp(2.2rem, 10cqw, 4.6rem);
+    letter-spacing: -0.03em;
+    color: #fff7e8;
+    -webkit-text-stroke: 0.07em #4a1500;
+    paint-order: stroke fill;
+    text-shadow: 0 0.07em 0 #7a2a06, 0 0 0.7em rgb(255 150 60 / 0.75);
+    animation: kb-blink 1.1s steps(2, jump-none) infinite;
+  }
+  @keyframes kb-blink {
+    50% {
+      opacity: 0.45;
+    }
+  }
+  .kb-field[data-phase="gate"] .kb-grid {
+    opacity: 0.25;
+  }
+}

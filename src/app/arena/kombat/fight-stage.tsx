@@ -5,6 +5,7 @@ import { Creature } from "@/components/creature";
 import type { Mood } from "@/lib/mood";
 import { Fighter } from "./fighter";
 import { POSE, runMove, type Actor, type Ctx, type Fx, type MoveName, type Pose } from "./choreo";
+import type { ArenaAudio, SoundName } from "../audio/engine";
 
 export type Rect = { left: number; top: number; width: number; height: number };
 
@@ -21,6 +22,8 @@ export type FightProps = {
   /** Where each caption's photo is on screen, relative to the stage (for the card -> fighter morph). */
   from?: () => [Rect, Rect] | null;
   onDone: () => void;
+  /** Sound, when the user has turned it on and the browser has allowed it. Every call is a no-op otherwise. */
+  audio?: ArenaAudio | null;
   /** Debug/QA: freeze on a named pose instead of running. */
   debugPose?: keyof typeof POSE | null;
 };
@@ -29,7 +32,15 @@ class Cancelled extends Error {}
 
 const CX = ["27%", "73%"] as const;
 
-export function FightStage({ heads, captions, winner, move, k, from, onDone, debugPose }: FightProps) {
+// What the announcer says for each on-screen announcement.
+const VOICE_FOR: Record<string, SoundName> = {
+  "FINISH HIM!": "v_finish_him",
+  "K.O.!": "v_ko",
+  "ABSOLUTE DESTRUCTION!": "v_destruction",
+  "YOUR PICK WINS!": "v_wins",
+};
+
+export function FightStage({ heads, captions, winner, move, k, from, onDone, audio, debugPose }: FightProps) {
   const stage = useRef<HTMLDivElement>(null);
   const cam = useRef<HTMLDivElement>(null);
   const fxLayer = useRef<HTMLDivElement>(null);
@@ -38,6 +49,7 @@ export function FightStage({ heads, captions, winner, move, k, from, onDone, deb
   const [ann, setAnn] = useState<{ text: string; kind: string; n: number } | null>(null);
   const [refMood, setRefMood] = useState<Mood>("idle");
   const [refOn, setRefOn] = useState(false);
+  const started = useRef(false);
   const doneRef = useRef(onDone);
   useEffect(() => {
     doneRef.current = onDone;
@@ -231,7 +243,15 @@ export function FightStage({ heads, captions, winner, move, k, from, onDone, deb
         const s = sr();
         return { x: r.left - s.left + r.width / 2, y: r.top - s.top + r.height / 2 };
       },
-      say: (text, kind) => setAnn({ text, kind, n: ++annN }),
+      say: (text, kind) => {
+        setAnn({ text, kind, n: ++annN });
+        const v = VOICE_FOR[text];
+        if (v) audio?.say(v);
+      },
+      sfx: (name, o) => {
+        audio?.play(name, o);
+      },
+      later: (fn, ms) => later(fn, ms),
       ref: (mood, jolt) => {
         setRefMood(mood as Mood);
         if (jolt && refEl.current) {
@@ -302,6 +322,11 @@ export function FightStage({ heads, captions, winner, move, k, from, onDone, deb
         setRefOn(true);
         return;
       }
+      audio?.startMusic(0.4);
+      if (!started.current) {
+        started.current = true;
+        audio?.play("morph");
+      }
       await wait(100);
       ctx.pose(actors[0], POSE.stance, 480);
       ctx.pose(actors[1], POSE.stance, 480);
@@ -310,15 +335,24 @@ export function FightStage({ heads, captions, winner, move, k, from, onDone, deb
       later(() => nameBoxes.forEach((n) => n?.setAttribute("data-on", "true")), 640);
       await wait(560);
       actors.forEach((a) => (a.el.dataset.idle = "true"));
-      if (Math.random() < 0.6) ctx.say("FINISH HIM!", "small");
-      await wait(520);
+      if (Math.random() < 0.6) {
+        await wait(((audio?.voiceRemaining() ?? 0) * 1000) / k); // never talk over "FIGHT!"
+        ctx.say("FINISH HIM!", "small");
+      }
+      // Never talk over the announcer: the wind-up begins as the last word lands.
+      await wait(Math.max(420, ((audio?.voiceRemaining() ?? 0) * 1000 - 450) / k));
       actors.forEach((a) => delete a.el.dataset.idle);
       ctx.ref("curious");
 
       await runMove(move, ctx);
 
       ctx.down(ctx.loser);
+      // Let the announcer finish the previous line first.
+      await wait(((audio?.voiceRemaining() ?? 0) * 1000) / k);
       ctx.say("YOUR PICK WINS!", "win");
+      audio?.play("fanfare", { gain: 0.9 });
+      audio?.play("crowd", { gain: 0.55, delay: 0.12 });
+      audio?.stopMusic(0.9);
       await wait(850);
       st.dataset.leaving = "true";
       await wait(340);

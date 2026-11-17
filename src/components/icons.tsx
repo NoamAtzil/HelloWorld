@@ -26,6 +26,8 @@ const PATHS = {
   logout: "M10 5H5v14h5M15 8l4 4-4 4M19 12H9",
   edit: "M4 20h4L18.5 9.5a2.1 2.1 0 0 0-4-4L4 16zM13.5 6.5l4 4",
   duel: "M4 8h13l-3-3M20 16H7l3 3",
+  volume: "M4 9h4l5-4v14l-5-4H4zM16.5 9.2a4 4 0 0 1 0 5.6M19 6.6a7.5 7.5 0 0 1 0 10.8",
+  mute: "M4 9h4l5-4v14l-5-4H4zM17 9.5l4.5 5M21.5 9.5l-4.5 5",
   calendar: "M5 6h14v14H5zM5 10h14M9 4v4M15 4v4",
   trophy: "M8 4h8v5a4 4 0 0 1-8 0zM8 6H4v1a3 3 0 0 0 4 3M16 6h4v1a3 3 0 0 1-4 3M12 13v4M8 20h8M10 17h4v3h-4z",
   user: "M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0zM4 20a8 8 0 0 1 16 0",

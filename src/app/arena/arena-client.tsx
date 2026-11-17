@@ -9,6 +9,8 @@ import { voiceLabel } from "@/lib/voices";
 import { castDuelVote, nextPair } from "./actions";
 import { pickMove, type MoveName } from "./kombat/choreo";
 import { FightStage, type Rect } from "./kombat/fight-stage";
+import { getAudio } from "./audio/engine";
+import { useArenaSound } from "./audio/use-arena-sound";
 import type { ArenaPair, ArenaReveal, ArenaSide } from "./pair";
 
 // CAPTION KOMBAT. The voting itself (castDuelVote / nextPair and every rule
@@ -18,13 +20,14 @@ import type { ArenaPair, ArenaReveal, ArenaSide } from "./pair";
 // community result is always shown afterwards, and the fight never changes it.
 
 type Phase =
+  | { name: "gate" }
   | { name: "intro" }
   | { name: "judging" }
   | { name: "saving"; picked: number }
   | { name: "fight"; picked: number; reveal: ArenaReveal; move: MoveName }
   | { name: "revealed"; picked: number; reveal: ArenaReveal };
 
-type Ann = { text: string; kind: "ready" | "battle"; n: number };
+type Ann = { text: string; kind: "ready" | "battle" | "long" | "next"; n: number };
 
 const PREF_KEY = "wss-fights";
 
@@ -39,6 +42,8 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
   const [animOn, setAnimOn] = useState<boolean | null>(null);
   const [reduced, setReduced] = useState(false);
   const [k, setK] = useState(1);
+  const sound = useArenaSound();
+  const audio = getAudio();
   const nextRef = useRef<HTMLButtonElement>(null);
   const field = useRef<HTMLDivElement>(null);
   const photos = useRef<Array<HTMLElement | null>>([null, null]);
@@ -50,6 +55,9 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
   const annN = useRef(0);
   // Synchronous guard: a double-click can never send two votes for one battle.
   const voting = useRef(false);
+  // While the "press start" gate is up, the intro waits for the player.
+  const gated = useRef(false);
+  const [introRun, setIntroRun] = useState(0);
 
   // ---- preferences --------------------------------------------------------
   useEffect(() => {
@@ -96,28 +104,85 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
 
   const pairKey = pair ? `${pair.left.id}-${pair.right.id}` : "none";
   useEffect(() => {
-    if (animOn === null || !pair) return;
+    if (animOn === null || !sound.known || !pair || gated.current) return;
     const first = introsPlayed.current === 0;
-    const speed = first ? 1 : 0.55;
-    const at = (ms: number, fn: () => void) => timers.current.push(window.setTimeout(fn, ms * speed));
+    // The cinematic, voiced intro only when sound can actually play right now.
+    const loud = audio.ready;
+    const at = (ms: number, fn: () => void) => timers.current.push(window.setTimeout(fn, ms));
     if (!animOn) {
       at(0, endIntro);
+    } else if (sound.on && audio.supported && !audio.running && first) {
+      // Sound is on but the browser hasn't allowed audio yet: an arcade "press start" gate.
+      gated.current = true;
+      at(0, () => setPhase({ name: "gate" }));
+    } else if (loud && first) {
+      audio.startMusic(0.5);
+      audio.play("whoosh_in", { pan: -0.5, gain: 0.9 });
+      audio.play("whoosh_in", { pan: 0.5, gain: 0.9 });
+      at(150, () => {
+        audio.say("v_get_ready");
+        say("GET READY FOR THE NEXT BATTLE!", "long");
+      });
+      at(735, () => audio.play("vs_hit", { gain: 0.9 }));
+      at(1800, () => audio.play("riser"));
+      at(2900, () => {
+        audio.say("v_fight");
+        audio.play("fight_boom");
+        audio.play("sting", { gain: 0.7 });
+        say("FIGHT!", "battle");
+      });
+      at(3600, endIntro);
+    } else if (loud) {
+      audio.startMusic(0.3);
+      audio.play("whoosh_in", { gain: 0.8 });
+      at(590, () => audio.play("vs_hit", { gain: 0.7 }));
+      // The "NEXT CHALLENGER!" line started when Next battle was pressed; FIGHT! waits for it.
+      const fightAt = Math.max(450, audio.voiceRemaining() * 1000 + 30);
+      at(fightAt, () => {
+        audio.say("v_fight");
+        audio.play("fight_boom", { gain: 0.8 });
+        say("FIGHT!", "battle");
+      });
+      at(fightAt + 650, endIntro);
     } else if (first) {
       at(650, () => say("GET READY!", "ready"));
-      at(1300, () => say("BATTLE!", "battle"));
+      at(1300, () => say("FIGHT!", "battle"));
       at(1950, endIntro);
     } else {
-      at(260, () => say("BATTLE!", "battle"));
-      at(1000, endIntro);
+      at(140, () => say("FIGHT!", "battle"));
+      at(550, endIntro);
     }
     return clearTimers;
     // The intro belongs to a matchup appearing; it is keyed on the pair.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pairKey, animOn]);
+  }, [pairKey, animOn, sound.known, introRun]);
 
   function skipAnimation() {
+    audio.stopAll(0.06);
     if (phase.name === "intro") endIntro();
     else if (phase.name === "fight") setPhase({ name: "revealed", picked: phase.picked, reveal: phase.reveal });
+  }
+
+  // "Press start": the tap is the gesture that lets the browser play sound.
+  async function startFromGate(withSound: boolean) {
+    if (withSound) {
+      audio.unlock();
+      await audio.load();
+    }
+    gated.current = false;
+    setPhase({ name: "intro" });
+    setIntroRun((n) => n + 1);
+  }
+
+  // Turning sound on mid-battle replays the intro, so the announcer is heard right away.
+  async function onSoundToggle() {
+    const turnedOn = await sound.toggle();
+    if (turnedOn && animOn && phase.name === "judging" && judged === 0) {
+      introsPlayed.current = 0;
+      setK(1);
+      setPhase({ name: "intro" });
+      setIntroRun((n) => n + 1);
+    }
   }
 
   // ---- voting (unchanged rules) -------------------------------------------
@@ -155,15 +220,22 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
   async function another() {
     setLoadingNext(true);
     setError(null);
+    // The announcer starts right away (this click is the gesture); the next intro waits for the line.
+    if (audio.ready && animOn) {
+      audio.stopMusic(0.2);
+      audio.say("v_next");
+      setAnn({ text: "NEXT CHALLENGER!", kind: "next", n: ++annN.current });
+    }
     try {
       const result = await nextPair();
       if (!result.ok) {
         setError(result.error);
+        setAnn(null);
         return;
       }
       voting.current = false;
       setPair(result.pair);
-      setK(0.55);
+      setK(audio.ready ? 0.8 : 0.55);
       setPhase({ name: "intro" });
     } catch {
       setError("We couldn't reach the server. Try again.");
@@ -232,6 +304,7 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
   else if (fighting) guidance = arenaGuidance({ phase: "fight" });
   else if (phase.name === "saving") guidance = { mood: "thinking", title: "Counting your vote", line: "One moment…" };
   else if (error) guidance = { mood: "confused", title: "That didn't count", line: "Hm. That didn't go to plan. Try again." };
+  else if (phase.name === "gate") guidance = { mood: "inspired", title: "Ready when you are", line: "Sound is on. Tap Start to hear the announcer." };
   else if (phase.name === "intro") guidance = arenaGuidance({ phase: "intro" });
   else guidance = arenaGuidance({ phase: "ready" });
 
@@ -271,15 +344,28 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
         <div className="flex flex-wrap items-start justify-between gap-3">
           <Guide guidance={guidance} eyebrow="Caption Kombat" as="h1" />
           {animOn !== null && !reduced && (
-            <button
-              type="button"
-              onClick={toggleAnim}
-              aria-pressed={animOn}
-              className="btn-ghost btn-sm shrink-0"
-              title="Turn the fight animations on or off"
-            >
-              <Icon name="duel" className="h-3.5 w-3.5" /> Fights: {animOn ? "on" : "off"}
-            </button>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {sound.supported && (
+                <button
+                  type="button"
+                  onClick={() => void onSoundToggle()}
+                  aria-pressed={sound.on}
+                  className={`btn-sm ${sound.on ? "btn-quiet" : "btn-ghost"}`}
+                  title={sound.on && !sound.ready ? "Sound is on. Tap anywhere to start it." : "Announcer, effects and music during the fights. Off until you turn it on."}
+                >
+                  <Icon name={sound.on ? "volume" : "mute"} className="h-3.5 w-3.5" /> Sound: {sound.on ? "on" : "off"}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={toggleAnim}
+                aria-pressed={animOn}
+                className="btn-ghost btn-sm"
+                title="Turn the fight animations on or off"
+              >
+                <Icon name="duel" className="h-3.5 w-3.5" /> Fights: {animOn ? "on" : "off"}
+              </button>
+            </div>
           )}
         </div>
 
@@ -351,9 +437,24 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
           <div className="kb-dim" aria-hidden="true" />
           <div className="kb-beam l" aria-hidden="true" />
           <div className="kb-beam r" aria-hidden="true" />
-          {ann && phase.name === "intro" && (
+          {ann && (phase.name === "intro" || (phase.name === "revealed" && ann.kind === "next")) && (
             <div key={ann.n} className="kb-ann" data-kind={ann.kind} data-text={ann.text} aria-hidden="true">
               {ann.text}
+            </div>
+          )}
+
+          {phase.name === "gate" && (
+            <div className="kb-gate">
+              <p className="kb-press">Press start</p>
+              <p className="max-w-xs text-center text-sm text-white/85">Sound is on. Tap Start to hear the announcer.</p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <button type="button" autoFocus onClick={() => void startFromGate(true)} className="btn-primary btn-lg press">
+                  <Icon name="volume" /> Start
+                </button>
+                <button type="button" onClick={() => void startFromGate(false)} className="btn-quiet btn-sm">
+                  Continue without sound
+                </button>
+              </div>
             </div>
           )}
 
@@ -366,6 +467,7 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
               move={fighting.move}
               k={k}
               from={fromRects}
+              audio={audio}
               onDone={() => setPhase((p) => (p.name === "fight" ? { name: "revealed", picked: p.picked, reveal: p.reveal } : p))}
             />
           )}

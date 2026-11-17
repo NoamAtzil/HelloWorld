@@ -1,0 +1,84 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { getAudio, SOUND_PREF_KEY } from "./engine";
+
+// The sound preference: muted until the user turns it on, then remembered. The
+// browser only lets audio start after a gesture, so a remembered "on" is
+// unlocked by the first tap or keypress on the page.
+export function useArenaSound() {
+  const [supported, setSupported] = useState(false);
+  const [on, setOn] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [known, setKnown] = useState(false);
+
+  useEffect(() => {
+    const audio = getAudio();
+    let pref = false;
+    try {
+      pref = window.localStorage.getItem(SOUND_PREF_KEY) === "on";
+    } catch {
+      /* storage unavailable: stays muted */
+    }
+    const sync = () => setReady(audio.ready);
+    const off = audio.subscribe(sync);
+    // Microtask: these are external-system reads, not render-driven state.
+    queueMicrotask(() => {
+      setSupported(audio.supported);
+      audio.setEnabled(pref && audio.supported);
+      setOn(pref && audio.supported);
+      sync();
+      setKnown(true);
+    });
+    return () => {
+      off();
+    };
+  }, []);
+
+  // A remembered "on" still needs one gesture before the browser allows sound.
+  useEffect(() => {
+    if (!on) return;
+    const audio = getAudio();
+    const unlock = () => audio.unlock();
+    const events = ["click", "touchend", "keydown"] as const;
+    events.forEach((e) => window.addEventListener(e, unlock, { capture: true }));
+    return () => events.forEach((e) => window.removeEventListener(e, unlock, { capture: true }));
+  }, [on]);
+
+  // Never leave sound running when the tab is hidden or the page is left.
+  useEffect(() => {
+    const audio = getAudio();
+    const hide = () => {
+      if (document.hidden) audio.stopAll(0.05);
+    };
+    document.addEventListener("visibilitychange", hide);
+    window.addEventListener("pagehide", () => audio.stopAll(0.02));
+    return () => {
+      document.removeEventListener("visibilitychange", hide);
+      audio.stopAll(0.05);
+    };
+  }, []);
+
+  /**
+   * Call from a click handler: turning sound on is the user gesture that unlocks
+   * audio. Resolves true once sound is on, unlocked and decoded (false when turned off).
+   */
+  const toggle = useCallback(async (): Promise<boolean> => {
+    const audio = getAudio();
+    const next = !on;
+    setOn(next);
+    try {
+      window.localStorage.setItem(SOUND_PREF_KEY, next ? "on" : "off");
+    } catch {
+      /* ignore */
+    }
+    audio.setEnabled(next);
+    if (!next) return false;
+    audio.unlock();
+    await audio.load();
+    audio.play("ui_on");
+    return audio.ready;
+  }, [on]);
+
+  return { supported, on, ready, known, toggle };
+}
