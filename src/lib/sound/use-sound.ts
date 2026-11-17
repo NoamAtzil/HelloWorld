@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { getAudio, SOUND_PREF_KEY, type SoundGroup } from "./engine";
 
-// The sound preference: muted until the user turns it on, then remembered. The
-// browser only lets audio start after a gesture, so a remembered "on" is
-// unlocked by the first tap or keypress on the page.
+// The sound preference: ON by default for every feature with audio, and remembered
+// once someone turns it off. The browser only lets audio start after a gesture, so
+// "on" is unlocked by the first tap, click or keypress on the page (the Arena's
+// PRESS START and the Daily Drop's "Raise the curtain" are exactly that tap).
 export function useSound(group: SoundGroup) {
   const [supported, setSupported] = useState(false);
   const [on, setOn] = useState(false);
@@ -14,11 +15,11 @@ export function useSound(group: SoundGroup) {
 
   useEffect(() => {
     const audio = getAudio();
-    let pref = false;
+    let pref = true; // on unless the person has explicitly turned it off
     try {
-      pref = window.localStorage.getItem(SOUND_PREF_KEY) === "on";
+      pref = window.localStorage.getItem(SOUND_PREF_KEY) !== "off";
     } catch {
-      /* storage unavailable: stays muted */
+      /* storage unavailable: use the default (on) */
     }
     const sync = () => setReady(audio.isReady(group));
     const off = audio.subscribe(sync);

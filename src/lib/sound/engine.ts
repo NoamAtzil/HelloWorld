@@ -5,8 +5,9 @@
 // clipper, so stacked sounds can never produce a harsh peak.
 //
 // Safety rules baked in:
-//  - Muted by default; the preference is explicit and persisted.
-//  - Nothing is created or played before a user gesture permits it (Safari/iOS):
+//  - On by default (the preference is persisted once someone turns it off), but
+//    nothing plays until a user gesture lets the browser start audio.
+//  - Nothing is created, downloaded or played before a user gesture permits it (Safari/iOS):
 //    unlock() runs inside a click/touch handler.
 //  - One announcer line at a time (a new line fades the old one out).
 //  - stopAll() clears every live source (Skip, mute, navigation, unmount).

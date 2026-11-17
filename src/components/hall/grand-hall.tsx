@@ -65,7 +65,7 @@ export function GrandHall({
                 className="hh-btn"
                 aria-pressed={sound.on}
                 onClick={sound.toggle}
-                title={sound.on && !sound.ready ? "Sound is on. Tap anywhere to start it." : "The museum announcer and gold shimmer. Off until you turn it on."}
+                title={sound.on && !sound.ready ? "Sound is on. Tap anywhere to start it." : "The museum announcer and gold shimmer. Turn it off any time."}
               >
                 <Icon name={sound.on ? "volume" : "mute"} className="h-3.5 w-3.5" /> Sound: {sound.on ? "on" : "off"}
               </button>

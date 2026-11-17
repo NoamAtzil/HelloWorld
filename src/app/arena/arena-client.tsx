@@ -351,7 +351,7 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
                   onClick={() => void onSoundToggle()}
                   aria-pressed={sound.on}
                   className={`btn-sm ${sound.on ? "btn-quiet" : "btn-ghost"}`}
-                  title={sound.on && !sound.ready ? "Sound is on. Tap anywhere to start it." : "Announcer, effects and music during the fights. Off until you turn it on."}
+                  title={sound.on && !sound.ready ? "Sound is on. Tap anywhere to start it." : "Announcer, effects and music during the fights. Turn it off any time."}
                 >
                   <Icon name={sound.on ? "volume" : "mute"} className="h-3.5 w-3.5" /> Sound: {sound.on ? "on" : "off"}
                 </button>
