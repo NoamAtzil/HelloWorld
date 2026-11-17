@@ -5,6 +5,7 @@ import { REST_INDEX, STORY, TOTAL_MS, nextIndex, phaseOf } from "../src/lib/stor
 import { voiceTheme, coverGradient } from "../src/lib/voice-theme";
 import {
   arenaGuidance,
+  crowdVerdict,
   dashboardGuidance,
   dropGuidance,
   feedGuidance,
@@ -100,4 +101,18 @@ test("drop, feed and dashboard guidance", () => {
   assert.equal(feedGuidance({ posts: 5, voice: null }).mood, "curious");
   assert.equal(dashboardGuidance({ posts: 0, firstName: "Maya" }).title, "Hi, Maya");
   assert.equal(dashboardGuidance({ posts: 3, firstName: null }).mood, "proud");
+});
+
+test("crowdVerdict reports the real tally, never the animation", () => {
+  assert.equal(crowdVerdict(1, 1).tone, "first");
+  assert.equal(crowdVerdict(10, 9).label, "Flawless caption!");
+  assert.equal(crowdVerdict(2, 2).tone, "agree"); // too few judges to call it flawless
+  assert.equal(crowdVerdict(10, 6).tone, "agree");
+  assert.equal(crowdVerdict(10, 5).tone, "split");
+  assert.equal(crowdVerdict(10, 2).tone, "bold");
+});
+
+test("arena has intro and fight guidance", () => {
+  assert.equal(arenaGuidance({ phase: "intro" }).mood, "inspired");
+  assert.match(arenaGuidance({ phase: "fight" }).line, /already counted/);
 });

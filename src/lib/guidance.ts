@@ -69,6 +69,8 @@ export type ArenaState =
   | { phase: "failed" }
   | { phase: "empty" }
   | { phase: "ready" }
+  | { phase: "intro" }
+  | { phase: "fight" }
   | { phase: "revealed"; pairTotal: number; pairWinnerVotes: number };
 
 export function arenaGuidance(s: ArenaState): Guidance {
@@ -81,6 +83,10 @@ export function arenaGuidance(s: ArenaState): Guidance {
       return { mood: "idle", title: "No battles right now", line: "You've judged everything for now. Check back soon." };
     case "ready":
       return { mood: "squint", title: "Which one's funnier?", line: "Tap the caption that made you laugh. You'll see who wrote each." };
+    case "intro":
+      return { mood: "inspired", title: "Ready to rumble?", line: "Two captions step into the ring. Pick the funnier one." };
+    case "fight":
+      return { mood: "curious", title: "Fight!", line: "Your vote is already counted. The showdown is just for show." };
     case "revealed": {
       if (s.pairTotal <= 1) return { mood: "curious", title: "You were first", line: "You're the first to judge this pair. Next battle?" };
       if (s.pairWinnerVotes * 2 > s.pairTotal) return { mood: "proud", title: "The crowd agrees", line: "Most people picked the same one. Next battle?" };
@@ -88,6 +94,19 @@ export function arenaGuidance(s: ArenaState): Guidance {
       return { mood: "squint", title: "Bold pick", line: "The crowd went the other way. Next battle?" };
     }
   }
+}
+
+/**
+ * What the real crowd did, in one honest headline. This is about the actual vote
+ * tally, never the animated showdown (which your pick always wins).
+ */
+export function crowdVerdict(total: number, winnerVotes: number): { label: string; tone: "first" | "great" | "agree" | "split" | "bold" } {
+  if (total <= 1) return { label: "First to judge", tone: "first" };
+  const pct = (winnerVotes / total) * 100;
+  if (total >= 3 && pct >= 80) return { label: "Flawless caption!", tone: "great" };
+  if (winnerVotes * 2 > total) return { label: "The crowd agrees", tone: "agree" };
+  if (winnerVotes * 2 === total) return { label: "A dead heat", tone: "split" };
+  return { label: "Bold pick", tone: "bold" };
 }
 
 export type DropState = { signedIn: boolean; hasChallenge: boolean; alreadyEntered: boolean; entries: number | null };
