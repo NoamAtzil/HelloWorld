@@ -8,6 +8,8 @@ import {
   crowdVerdict,
   dashboardGuidance,
   dropGuidance,
+  dropVoteGuidance,
+  winnerGuidance,
   feedGuidance,
   isQuotaMessage,
   studioGuidance,
@@ -115,4 +117,23 @@ test("crowdVerdict reports the real tally, never the animation", () => {
 test("arena has intro and fight guidance", () => {
   assert.equal(arenaGuidance({ phase: "intro" }).mood, "inspired");
   assert.match(arenaGuidance({ phase: "fight" }).line, /already counted/);
+});
+
+test("the Daily Drop host reacts to real state", () => {
+  const base = { signedIn: true, hasChallenge: true, alreadyEntered: false, entries: 3 };
+  assert.equal(dropGuidance({ ...base, curtain: "closed" }).mood, "curious");
+  assert.equal(dropGuidance({ ...base, curtain: "opening" }).mood, "inspired");
+  assert.match(dropGuidance({ ...base, alreadyEntered: true }).line, /midnight/);
+  assert.equal(studioGuidance({ signedIn: true, challenge: true, hasPhoto: true, busy: "publish", hasTakes: true, published: null, error: null }).mood, "inspired");
+  assert.equal(studioGuidance({ signedIn: true, challenge: true, hasPhoto: true, busy: null, hasTakes: false, published: null, error: null, typing: true }).mood, "thinking");
+});
+
+test("voting reactions and the winner awards", () => {
+  assert.equal(dropVoteGuidance("up", 0).mood, "proud");
+  assert.equal(dropVoteGuidance("down", 1).mood, "squint");
+  assert.equal(dropVoteGuidance("fail").mood, "confused");
+  assert.notEqual(dropVoteGuidance("up", 0).title, dropVoteGuidance("up", 1).title);
+  assert.equal(winnerGuidance({ phase: "none" }).title, "No winner yesterday");
+  assert.match(winnerGuidance({ phase: "open", author: "Ava" }).line, /Ava/);
+  assert.equal(winnerGuidance({ phase: "drum" }).mood, "inspired");
 });

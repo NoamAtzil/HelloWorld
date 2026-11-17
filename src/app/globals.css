@@ -2,6 +2,7 @@
 @import "./studio.css";
 @import "./wordmark.css";
 @import "./arena/kombat/kombat.css";
+@import "./drop/show.css";
 
 /*
   Design system: Ember Studio (shared with HelloWorld-PromptChains)

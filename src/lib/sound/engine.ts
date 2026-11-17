@@ -13,16 +13,23 @@
 //  - Assets are small AAC files decoded once, so effects start instantly.
 
 export type SoundName =
+  | "d_curtain" | "d_sting" | "d_stamp" | "d_drop" | "d_applause" | "d_vote" | "d_drumroll" | "d_fanfare" | "d_chime" | "d_pop"
   | "ui_on" | "whoosh_in" | "vs_hit" | "sting" | "morph" | "windup" | "punch" | "whoosh_up"
   | "launch" | "spin" | "kick" | "fly_away" | "poof" | "hammer_swing" | "bonk" | "boing"
   | "land" | "fanfare" | "crowd" | "twinkle" | "ko_hit" | "ring" | "music" | "riser" | "fight_boom"
   | "v_get_ready" | "v_fight" | "v_finish_him" | "v_ko" | "v_wins" | "v_next" | "v_destruction";
 
-export const SOUND_NAMES: SoundName[] = [
-  "ui_on", "whoosh_in", "vs_hit", "sting", "morph", "windup", "punch", "whoosh_up", "launch", "spin", "kick",
-  "fly_away", "poof", "hammer_swing", "bonk", "boing", "land", "fanfare", "crowd", "twinkle", "ko_hit", "ring",
-  "music", "riser", "fight_boom", "v_get_ready", "v_fight", "v_finish_him", "v_ko", "v_wins", "v_next", "v_destruction",
-];
+// Two groups, loaded separately: Arena visitors never download the Daily Drop sounds, and vice versa.
+export type SoundGroup = "arena" | "drop";
+export const SOUND_GROUPS: Record<SoundGroup, SoundName[]> = {
+  arena: [
+    "ui_on", "whoosh_in", "vs_hit", "sting", "morph", "windup", "punch", "whoosh_up", "launch", "spin", "kick",
+    "fly_away", "poof", "hammer_swing", "bonk", "boing", "land", "fanfare", "crowd", "twinkle", "ko_hit", "ring",
+    "music", "riser", "fight_boom", "v_get_ready", "v_fight", "v_finish_him", "v_ko", "v_wins", "v_next", "v_destruction",
+  ],
+  drop: ["ui_on", "d_curtain", "d_sting", "d_stamp", "d_drop", "d_applause", "d_vote", "d_drumroll", "d_fanfare", "d_chime", "d_pop"],
+};
+export const SOUND_NAMES: SoundName[] = [...new Set([...SOUND_GROUPS.arena, ...SOUND_GROUPS.drop])];
 
 const BASE = "/audio/arena/";
 type Bus = "voice" | "sfx" | "music";
@@ -51,7 +58,8 @@ class ArenaAudio {
   private ctx: AudioContext | null = null;
   private buses = {} as Record<Bus, GainNode>;
   private buffers = new Map<SoundName, AudioBuffer>();
-  private loading: Promise<void> | null = null;
+  private loading = new Map<SoundGroup, Promise<void>>();
+  private loaded = new Set<SoundGroup>();
   private live = new Set<Live>();
   private voice: Live | null = null;
   private musicLive: Live | null = null;
@@ -65,9 +73,9 @@ class ArenaAudio {
   get running() {
     return this.ctx?.state === "running";
   }
-  /** Sound can play right now: enabled, unlocked by a gesture, and decoded. */
-  get ready() {
-    return this.enabled && this.running && this.buffers.size > 0;
+  /** Sound can play right now: enabled, unlocked by a gesture, and this group is decoded. */
+  isReady(group: SoundGroup) {
+    return this.enabled && this.running && this.loaded.has(group);
   }
   subscribe(fn: () => void) {
     this.listeners.add(fn);
@@ -84,7 +92,7 @@ class ArenaAudio {
   }
 
   /** Must be called synchronously inside a user gesture (click, touchend, keydown). */
-  unlock() {
+  unlock(group: SoundGroup) {
     if (!this.supported || !this.enabled) return;
     if (!this.ctx) this.build();
     const ctx = this.ctx!;
@@ -99,7 +107,7 @@ class ArenaAudio {
     } catch {
       /* ignore */
     }
-    void this.load();
+    void this.load(group);
   }
 
   private build() {
@@ -149,29 +157,35 @@ class ArenaAudio {
     }
   }
 
-  /** Fetch + decode every asset once. Safe to call repeatedly. */
-  load(): Promise<void> {
-    if (this.loading) return this.loading;
+  /** Fetch + decode every asset of a group once. Safe to call repeatedly. */
+  load(group: SoundGroup): Promise<void> {
+    const existing = this.loading.get(group);
+    if (existing) return existing;
     const ctx = this.ctx;
     if (!ctx) return Promise.resolve();
-    this.loading = Promise.all(
-      SOUND_NAMES.map(async (name) => {
+    const p = Promise.all(
+      SOUND_GROUPS[group].map(async (name) => {
+        if (this.buffers.has(name)) return;
         try {
           const res = await fetch(`${BASE}${name}.m4a`);
           if (!res.ok) return;
           const data = await res.arrayBuffer();
           // Promise + callback form together: works on older Safari too.
           const buf = await new Promise<AudioBuffer>((resolve, reject) => {
-            const p = ctx.decodeAudioData(data, resolve, reject);
-            if (p && typeof p.then === "function") p.then(resolve, reject);
+            const pr = ctx.decodeAudioData(data, resolve, reject);
+            if (pr && typeof pr.then === "function") pr.then(resolve, reject);
           });
           this.buffers.set(name, buf);
         } catch {
           /* a missing or undecodable asset just stays silent */
         }
       }),
-    ).then(() => this.emit());
-    return this.loading;
+    ).then(() => {
+      this.loaded.add(group);
+      this.emit();
+    });
+    this.loading.set(group, p);
+    return p;
   }
 
   private log(e: Omit<LogEntry, "t">) {
@@ -184,7 +198,7 @@ class ArenaAudio {
 
   play(name: SoundName, o: PlayOpts = {}): Live | null {
     const ctx = this.ctx;
-    if (!ctx || !this.ready) return null;
+    if (!ctx || !this.enabled || !this.running) return null;
     const buf = this.buffers.get(name);
     if (!buf) return null;
     const bus = o.bus ?? (name.startsWith("v_") ? "voice" : name === "music" ? "music" : "sfx");

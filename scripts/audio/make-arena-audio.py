@@ -409,6 +409,108 @@ def fight_boom():
     return peak_norm(fade(reverb(y, 1.0, 0.28), 0.001, 0.12), 0.93)
 S["fight_boom"] = fight_boom
 
+# ----------------------------------------------------------------- Daily Drop ("the show")
+def d_curtain():
+    n = 1.5; t = T(n)
+    cloth = bp(noise(n), 160, 2300, 2) * np.where(t < 0.5, (t / 0.5) ** 1.5, np.exp(-(t - 0.5) / 0.45))
+    cloth = lp(cloth, 3200)
+    rattle = np.zeros_like(t)
+    for _ in range(16):
+        place(rattle, hp(noise(0.02), 3200) * np.exp(-T(0.02) / 0.004), 0.05 + rng.random() * 0.7, 0.25 + 0.3 * rng.random())
+    rumble = tone(58, 50, n) * np.exp(-t / 0.5) * 0.4
+    shimmer = hp(noise(n), 5500) * np.where(t > 0.5, np.exp(-(t - 0.5) / 0.3), 0) * 0.1
+    return peak_norm(fade(reverb(cloth * 0.9 + rattle + rumble + shimmer, 0.6, 0.2), 0.01, 0.12), 0.8)
+S["d_curtain"] = d_curtain
+
+def d_sting():
+    n = 1.5; y = np.zeros(int(n * SR))
+    def stab(freqs, dur): 
+        a = filt_env_saw(freqs, dur + 0.05, 700, 4200, 1600, 0.05, (-8, 8)); t = T(dur + 0.05)
+        return a * np.minimum(t / 0.01, 1) * np.where(t < dur - 0.1, 1, np.exp(-(t - (dur - 0.1)) / 0.06))
+    place(y, stab([261.63, 329.63, 392.0, 523.25], 0.2), 0.0, 0.8)
+    place(y, stab([293.66, 392.0, 493.88, 587.33, 196.0], 1.1), 0.22, 1.0)
+    place(y, hp(noise(1.1), 5200) * np.exp(-T(1.1) / 0.45) * 0.28, 0.22, 1.0)
+    for k, f in enumerate([2093, 2637, 3136]): place(y, bell(f, 0.5, 9, ((1, 1), (2.0, .3))), 0.3 + k * 0.08, 0.35)
+    return peak_norm(fade(reverb(sat(y, 1.4), 0.9, 0.24), 0.002, 0.15), 0.88)
+S["d_sting"] = d_sting
+
+def d_stamp():
+    n = 0.55; t = T(n)
+    thunk = tone(135, 52, n) * np.exp(-t / 0.07)
+    body = lp(noise(n), 520) * np.exp(-t / 0.05) * 0.9
+    paper = bp(noise(n), 2200, 5500) * np.exp(-t / 0.012) * 0.55
+    squelch = tone(320, 170, n) * np.exp(-t / 0.03) * 0.3
+    return peak_norm(fade(reverb(sat(thunk * 1.1 + body + paper + squelch, 1.8), 0.25, 0.1), 0.0005, 0.06), 0.9)
+S["d_stamp"] = d_stamp
+
+def d_drop():
+    n = 1.0; t = T(n); y = np.zeros_like(t)
+    sw = sweep_noise(0.4, 500, 2600, q=1.4) * np.sin(np.pi * np.clip(T(0.4) / 0.4, 0, 1)) ** 1.5 * 0.5
+    place(y, hp(sw, 150), 0.0, 1.0)
+    thud = tone(150, 62, 0.4) * np.exp(-T(0.4) / 0.08) + lp(noise(0.4), 900) * np.exp(-T(0.4) / 0.05) * 0.8
+    place(y, thud, 0.38, 1.0)
+    place(y, bell(2093, 0.5, 9, ((1, 1), (2.76, .3))), 0.42, 0.45)
+    return peak_norm(fade(reverb(y, 0.35, 0.12), 0.003, 0.08), 0.85)
+S["d_drop"] = d_drop
+
+def d_applause():
+    n = 1.4; t = T(n); y = np.zeros_like(t)
+    dens = lambda u: 6 + 46 * np.sin(np.pi * u) ** 1.2          # claps per second: rises, then fades
+    at = 0.0
+    while at < n - 0.1:
+        u = at / n
+        place(y, bp(noise(0.06), 700, 3600) * np.exp(-T(0.06) / 0.013), at, 0.35 + 0.65 * rng.random())
+        at += rng.exponential(1.0 / dens(u))
+    y += lp(noise(n), 3000) * np.sin(np.pi * np.clip(t / n, 0, 1)) ** 1.5 * 0.05
+    return peak_norm(fade(reverb(y, 0.6, 0.2), 0.02, 0.25), 0.7)
+S["d_applause"] = d_applause
+
+def d_vote():
+    n = 0.45; t = T(n); y = np.zeros_like(t)
+    y += tone(720, 280, n) * np.exp(-t / 0.045) * 0.9
+    place(y, bell(1318.5, 0.4, 9, ((1, 1), (2.76, .3))), 0.04, 0.7)
+    return peak_norm(fade(y, 0.001, 0.05), 0.75)
+S["d_vote"] = d_vote
+
+def d_drumroll():
+    n = 2.2; t = T(n); y = np.zeros_like(t); roll_end = 1.45
+    at = 0.0
+    while at < roll_end:
+        u = at / roll_end; amp = 0.14 + 0.86 * u ** 1.4
+        hit = bp(noise(0.05), 1500, 6500) * np.exp(-T(0.05) / 0.012) + tone(190, 150, 0.05) * np.exp(-T(0.05) / 0.015) * 0.5
+        place(y, hit, at, amp); at += 1.0 / (22 + 14 * u)
+    place(y, tone(88, 60, roll_end) * np.linspace(0.05, 0.5, int(roll_end * SR)), 0.0, 1.0)
+    cr = hp(noise(1.2), 4200) * np.exp(-T(1.2) / 0.5) * 0.6 + tone(75, 38, 1.2) * np.exp(-T(1.2) / 0.3) * 0.9
+    place(y, cr, roll_end, 1.0)
+    return peak_norm(fade(reverb(sat(y, 1.5), 0.8, 0.22), 0.01, 0.2), 0.88)
+S["d_drumroll"] = d_drumroll
+
+def d_fanfare():
+    n = 1.9; y = np.zeros(int(n * SR))
+    def brass(freqs, dur, vib=0.0):
+        a = filt_env_saw(freqs, dur + 0.05, 700, 4000, 1700, 0.06, (-9, 9)); t = T(dur + 0.05)
+        e = np.minimum(t / 0.012, 1) * np.where(t < dur - 0.08, 1, np.exp(-(t - (dur - 0.08)) / 0.05))
+        return a * e * ((1 + vib * np.sin(2 * np.pi * 5.5 * t)) if vib else 1)
+    for k, f in enumerate([[392.0, 523.25, 659.25], [523.25, 659.25, 783.99], [659.25, 783.99, 1046.5]]): place(y, brass(f, 0.14), k * 0.16, 0.85)
+    place(y, brass([523.25, 659.25, 783.99, 1046.5, 261.63], 1.15, 0.014), 0.5, 1.0)
+    place(y, hp(noise(1.2), 5000) * np.exp(-T(1.2) / 0.5) * 0.3, 0.5, 1.0)
+    return peak_norm(fade(reverb(sat(y, 1.4), 1.0, 0.27), 0.002, 0.15), 0.88)
+S["d_fanfare"] = d_fanfare
+
+def d_chime():
+    n = 1.1; y = np.zeros(int(n * SR))
+    for k, f in enumerate([523.25, 587.33, 659.25, 783.99, 1046.5]): place(y, bell(f, 0.8, 5.5, ((1, 1), (2.0, .35), (3.0, .18))), k * 0.07, 0.85 - 0.05 * k)
+    place(y, hp(noise(0.8), 6500) * np.exp(-T(0.8) / 0.3) * 0.12, 0.3, 1.0)
+    return peak_norm(fade(reverb(y, 0.7, 0.2), 0.002, 0.12), 0.78)
+S["d_chime"] = d_chime
+
+def d_pop():
+    n = 0.5; t = T(n)
+    y = bp(noise(n), 800, 5200) * np.exp(-t / 0.022) * 1.0 + tone(210, 70, n) * np.exp(-t / 0.05) * 0.7
+    for _ in range(5): place(y, bell(float(rng.choice([2349, 2794, 3136, 3951])), 0.25, 14, ((1, 1), (2.0, .25))), 0.03 + rng.random() * 0.2, 0.3)
+    return peak_norm(fade(y, 0.0005, 0.08), 0.8)
+S["d_pop"] = d_pop
+
 # ----------------------------------------------------------------- write out
 def write_m4a(name, x, kbps):
     os.makedirs(OUT, exist_ok=True)

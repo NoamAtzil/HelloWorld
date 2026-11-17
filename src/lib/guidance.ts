@@ -22,6 +22,8 @@ export type StudioState = {
   hasTakes: boolean;
   published: null | { drop: boolean };
   error: string | null;
+  /** Daily Drop: the person has typed a direction but not generated yet. */
+  typing?: boolean;
 };
 
 export function studioGuidance(s: StudioState): Guidance {
@@ -43,10 +45,13 @@ export function studioGuidance(s: StudioState): Guidance {
     case "remix":
       return { mood: "thinking", title: "Remixing", line: "Rewriting that one…" };
     case "publish":
-      return { mood: "thinking", title: "Publishing", line: s.challenge ? "Entering you in today's Drop…" : "Putting it in the feed…" };
+      return s.challenge
+        ? { mood: "inspired", title: "Entering you in!", line: "Getting your entry stamped…" }
+        : { mood: "thinking", title: "Publishing", line: "Putting it in the feed…" };
     case "card":
       return { mood: "thinking", title: "Making your card", line: "Framing it for sharing…" };
   }
+  if (s.typing && !s.hasTakes) return { mood: "thinking", title: "Hmm, interesting…", line: "Good direction. Hit generate when you're ready." };
   if (s.hasTakes) {
     return {
       mood: "proud",
@@ -109,13 +114,60 @@ export function crowdVerdict(total: number, winnerVotes: number): { label: strin
   return { label: "Bold pick", tone: "bold" };
 }
 
-export type DropState = { signedIn: boolean; hasChallenge: boolean; alreadyEntered: boolean; entries: number | null };
+export type DropState = {
+  signedIn: boolean;
+  hasChallenge: boolean;
+  alreadyEntered: boolean;
+  entries: number | null;
+  /** The show's curtain, during the daily entrance. */
+  curtain?: "closed" | "opening" | "open";
+};
 
 export function dropGuidance(s: DropState): Guidance {
+  if (s.curtain === "closed") return { mood: "curious", title: "The show is about to begin", line: "Raise the curtain whenever you're ready." };
+  if (s.curtain === "opening") return { mood: "inspired", title: "Ladies and gentlemen!", line: "Welcome to the Daily Drop. One photo, one caption, one day." };
   if (!s.hasChallenge) return { mood: "confused", title: "No challenge today", line: "There's no photo to caption today. Check back tomorrow." };
   if (!s.signedIn) return { mood: "curious", title: "Today's challenge", line: "One photo a day, one caption each. Sign in to enter and vote." };
-  if (s.alreadyEntered) return { mood: "proud", title: "You're in", line: "Your caption is entered. Now vote on the others." };
+  if (s.alreadyEntered) return { mood: "proud", title: "You're in", line: "Your caption is entered. Vote on the others, then come back after midnight Eastern for the results." };
   return { mood: "curious", title: "Today's challenge", line: "Caption the photo, then vote on other entries. One entry per day." };
+}
+
+/** The host's reaction to a real vote. `n` is how many votes this person has cast here, to vary the lines. */
+export function dropVoteGuidance(kind: "up" | "down" | "undo" | "fail", n = 0): Guidance {
+  const pick = <T,>(list: T[]) => list[Math.abs(n) % list.length];
+  switch (kind) {
+    case "up":
+      return pick<Guidance>([
+        { mood: "proud", title: "Applause!", line: "The judges loved that one." },
+        { mood: "inspired", title: "Ooh!", line: "A fan favorite, folks." },
+        { mood: "proud", title: "Nicely judged", line: "You have taste. Keep voting." },
+      ]);
+    case "down":
+      return pick<Guidance>([
+        { mood: "squint", title: "Tough room", line: "That one didn't land with you." },
+        { mood: "squint", title: "Ouch", line: "Comedy is hard. The votes are real." },
+      ]);
+    case "undo":
+      return { mood: "curious", title: "Changed your mind?", line: "Totally fair. Judges are allowed to." };
+    case "fail":
+      return { mood: "confused", title: "The mic cut out", line: "That vote didn't go through. Try again." };
+  }
+}
+
+export type WinnerPhase = "none" | "closed" | "drum" | "open";
+
+/** The host at the awards: only ever about a winner the database actually named. */
+export function winnerGuidance(s: { phase: WinnerPhase; author?: string }): Guidance {
+  switch (s.phase) {
+    case "none":
+      return { mood: "idle", title: "No winner yesterday", line: "The stage was empty. Tonight could change that." };
+    case "closed":
+      return { mood: "curious", title: "Yesterday's winner", line: "Ready to find out who it was?" };
+    case "drum":
+      return { mood: "inspired", title: "And the winner is…", line: "Drumroll, please." };
+    case "open":
+      return { mood: "proud", title: "Congratulations!", line: s.author ? `Yesterday's best caption, by ${s.author}.` : "Yesterday's best caption." };
+  }
 }
 
 export function feedGuidance(s: { posts: number; voice: string | null }): Guidance {

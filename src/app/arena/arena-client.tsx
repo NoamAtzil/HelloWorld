@@ -9,8 +9,8 @@ import { voiceLabel } from "@/lib/voices";
 import { castDuelVote, nextPair } from "./actions";
 import { pickMove, type MoveName } from "./kombat/choreo";
 import { FightStage, type Rect } from "./kombat/fight-stage";
-import { getAudio } from "./audio/engine";
-import { useArenaSound } from "./audio/use-arena-sound";
+import { getAudio } from "@/lib/sound/engine";
+import { useSound } from "@/lib/sound/use-sound";
 import type { ArenaPair, ArenaReveal, ArenaSide } from "./pair";
 
 // CAPTION KOMBAT. The voting itself (castDuelVote / nextPair and every rule
@@ -42,7 +42,7 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
   const [animOn, setAnimOn] = useState<boolean | null>(null);
   const [reduced, setReduced] = useState(false);
   const [k, setK] = useState(1);
-  const sound = useArenaSound();
+  const sound = useSound("arena");
   const audio = getAudio();
   const nextRef = useRef<HTMLButtonElement>(null);
   const field = useRef<HTMLDivElement>(null);
@@ -107,7 +107,7 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
     if (animOn === null || !sound.known || !pair || gated.current) return;
     const first = introsPlayed.current === 0;
     // The cinematic, voiced intro only when sound can actually play right now.
-    const loud = audio.ready;
+    const loud = audio.isReady("arena");
     const at = (ms: number, fn: () => void) => timers.current.push(window.setTimeout(fn, ms));
     if (!animOn) {
       at(0, endIntro);
@@ -166,8 +166,8 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
   // "Press start": the tap is the gesture that lets the browser play sound.
   async function startFromGate(withSound: boolean) {
     if (withSound) {
-      audio.unlock();
-      await audio.load();
+      audio.unlock("arena");
+      await audio.load("arena");
     }
     gated.current = false;
     setPhase({ name: "intro" });
@@ -221,7 +221,7 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
     setLoadingNext(true);
     setError(null);
     // The announcer starts right away (this click is the gesture); the next intro waits for the line.
-    if (audio.ready && animOn) {
+    if (audio.isReady("arena") && animOn) {
       audio.stopMusic(0.2);
       audio.say("v_next");
       setAnn({ text: "NEXT CHALLENGER!", kind: "next", n: ++annN.current });
@@ -235,7 +235,7 @@ export function ArenaClient({ initialPair, loadFailed }: { initialPair: ArenaPai
       }
       voting.current = false;
       setPair(result.pair);
-      setK(audio.ready ? 0.8 : 0.55);
+      setK(audio.isReady("arena") ? 0.8 : 0.55);
       setPhase({ name: "intro" });
     } catch {
       setError("We couldn't reach the server. Try again.");

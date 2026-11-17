@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getAudio, SOUND_PREF_KEY } from "./engine";
+import { getAudio, SOUND_PREF_KEY, type SoundGroup } from "./engine";
 
 // The sound preference: muted until the user turns it on, then remembered. The
 // browser only lets audio start after a gesture, so a remembered "on" is
 // unlocked by the first tap or keypress on the page.
-export function useArenaSound() {
+export function useSound(group: SoundGroup) {
   const [supported, setSupported] = useState(false);
   const [on, setOn] = useState(false);
   const [ready, setReady] = useState(false);
@@ -20,7 +20,7 @@ export function useArenaSound() {
     } catch {
       /* storage unavailable: stays muted */
     }
-    const sync = () => setReady(audio.ready);
+    const sync = () => setReady(audio.isReady(group));
     const off = audio.subscribe(sync);
     // Microtask: these are external-system reads, not render-driven state.
     queueMicrotask(() => {
@@ -29,21 +29,23 @@ export function useArenaSound() {
       setOn(pref && audio.supported);
       sync();
       setKnown(true);
+      // Already unlocked earlier this visit (e.g. on another page): just fetch this page's sounds.
+      if (pref && audio.running) void audio.load(group);
     });
     return () => {
       off();
     };
-  }, []);
+  }, [group]);
 
   // A remembered "on" still needs one gesture before the browser allows sound.
   useEffect(() => {
     if (!on) return;
     const audio = getAudio();
-    const unlock = () => audio.unlock();
+    const unlock = () => audio.unlock(group);
     const events = ["click", "touchend", "keydown"] as const;
     events.forEach((e) => window.addEventListener(e, unlock, { capture: true }));
     return () => events.forEach((e) => window.removeEventListener(e, unlock, { capture: true }));
-  }, [on]);
+  }, [on, group]);
 
   // Never leave sound running when the tab is hidden or the page is left.
   useEffect(() => {
@@ -74,11 +76,11 @@ export function useArenaSound() {
     }
     audio.setEnabled(next);
     if (!next) return false;
-    audio.unlock();
-    await audio.load();
+    audio.unlock(group);
+    await audio.load(group);
     audio.play("ui_on");
-    return audio.ready;
-  }, [on]);
+    return audio.isReady(group);
+  }, [on, group]);
 
   return { supported, on, ready, known, toggle };
 }

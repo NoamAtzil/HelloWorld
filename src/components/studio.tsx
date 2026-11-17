@@ -8,6 +8,7 @@ import { dataUrlToFile, downscale, fileToDataUrl } from "@/lib/image-client";
 import { LIBRARY, libraryUrl, type LibraryItem } from "@/lib/library";
 import { Photo } from "@/components/photo";
 import { Guide } from "@/components/guide";
+import { SubmissionCeremony } from "@/components/drop/submission-ceremony";
 import { Icon } from "@/components/icons";
 import { dropGuidance, studioGuidance } from "@/lib/guidance";
 import { voiceTheme } from "@/lib/voice-theme";
@@ -80,6 +81,9 @@ export function Studio({
   const [share, setShare] = useState(false);
   const [published, setPublished] = useState<Extract<PublishResult, { ok: true }> | null>(null);
   const [copied, setCopied] = useState(false);
+  // The Daily Drop submission ceremony: only ever set after the server confirms the entry.
+  const [ceremony, setCeremony] = useState<{ caption: string; from: DOMRect | null } | null>(null);
+  const plate = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
   const working = useRef(false);
@@ -316,6 +320,9 @@ export function Studio({
         return;
       }
       setPublished(result);
+      if (challenge && result.drop && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        setCeremony({ caption: takes[selected].text, from: plate.current?.getBoundingClientRect() ?? null });
+      }
     } finally {
       working.current = false;
       setBusy(null);
@@ -390,6 +397,7 @@ export function Studio({
     hasTakes: Boolean(takes && takes.length > 0),
     published: published ? { drop: Boolean(published.drop) } : null,
     error,
+    typing: Boolean(challenge && !takes && direction.trim()),
   });
 
   // On a phone the preview sits below the controls: bring it into view when work starts.
@@ -410,6 +418,17 @@ export function Studio({
 
   return (
     <div id="studio" className="grid scroll-mt-24 grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]">
+      {ceremony && (
+        <SubmissionCeremony
+          caption={ceremony.caption}
+          from={ceremony.from}
+          onDone={() => {
+            setCeremony(null);
+            // Pull in the new entry, the entry count, and "you're in" from the server.
+            router.refresh();
+          }}
+        />
+      )}
       {/* LEFT: photo, voice, and the joke's direction */}
       <section className="panel flex flex-col gap-6 p-5 sm:p-6" aria-label="Choose a photo and a voice">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -549,7 +568,7 @@ export function Studio({
       {/* RIGHT: the live preview, with the Caption Creature */}
       <div className="no-scrollbar lg:sticky lg:top-[5.25rem] lg:-m-3 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:overscroll-contain lg:p-3">
         <section ref={preview} className="panel flex scroll-mt-24 flex-col gap-5 p-5 sm:p-6" aria-label="Live preview">
-          <Guide guidance={guidance} eyebrow="Live preview" />
+          <Guide guidance={guidance} eyebrow={challenge ? "Your host" : "Live preview"} />
 
           <div>
             <Photo src={previewSrc} alt={previewAlt} size={challenge ? "drop" : "studio"} fixed loading="eager" fallback="Choose a photo on the left">
@@ -560,7 +579,7 @@ export function Studio({
                 </span>
               )}
             </Photo>
-            <div className={`liquid liquid-strong relative z-[1] mx-3 -mt-10 rounded-2xl px-5 pb-5 pt-4 ${current ? "" : "!border-dashed"}`}>
+            <div ref={plate} className={`liquid liquid-strong relative z-[1] mx-3 -mt-10 rounded-2xl px-5 pb-5 pt-4 ${current ? "" : "!border-dashed"}`}>
               {current ? (
                 <p key={`${selected}-${current.text}`} aria-live="polite" className="plate-in caption-text text-[1.35rem] sm:text-2xl">
                   {current.text}

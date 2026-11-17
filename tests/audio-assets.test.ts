@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, statSync } from "node:fs";
 import path from "node:path";
-import { SOUND_NAMES } from "../src/app/arena/audio/engine";
+import { SOUND_NAMES } from "../src/lib/sound/engine";
 
 const DIR = path.join(process.cwd(), "public", "audio", "arena");
 

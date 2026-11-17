@@ -5,7 +5,7 @@ import { Creature } from "@/components/creature";
 import type { Mood } from "@/lib/mood";
 import { Fighter } from "./fighter";
 import { POSE, runMove, type Actor, type Ctx, type Fx, type MoveName, type Pose } from "./choreo";
-import type { ArenaAudio, SoundName } from "../audio/engine";
+import type { ArenaAudio, SoundName } from "@/lib/sound/engine";
 
 export type Rect = { left: number; top: number; width: number; height: number };
 

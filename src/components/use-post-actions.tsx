@@ -10,7 +10,9 @@ type OptimisticAction =
 
 // Optimistic voting and deleting with a short, friendly notice on failure
 // (the optimistic change snaps back on its own once the action finishes).
-export function usePostActions(posts: FeedPost[]) {
+export type VoteOutcome = { id: number; /** the vote after this action: 1, -1, or 0 (cleared) */ next: 1 | -1 | 0; ok: boolean };
+
+export function usePostActions(posts: FeedPost[], opts?: { onVote?: (outcome: VoteOutcome) => void }) {
   const [notice, setNotice] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -32,12 +34,18 @@ export function usePostActions(posts: FeedPost[]) {
     setNotice(null);
   }
 
-  async function attempt(action: () => Promise<ActionResult>, fallbackMessage: string) {
+  /** Runs a server action; shows a friendly notice on failure and says whether it worked. */
+  async function attempt(action: () => Promise<ActionResult>, fallbackMessage: string): Promise<boolean> {
     try {
       const result = await action();
-      if (result?.error) showNotice(result.error);
+      if (result?.error) {
+        showNotice(result.error);
+        return false;
+      }
+      return true;
     } catch {
       showNotice(fallbackMessage);
+      return false;
     }
   }
 
@@ -50,8 +58,10 @@ export function usePostActions(posts: FeedPost[]) {
   );
 
   async function castVote(id: number, value: 1 | -1, formData: FormData) {
+    const previous = optimistic.find((post) => post.id === id)?.myVote ?? 0;
     applyOptimistic({ kind: "vote", id, value });
-    await attempt(() => setVote(formData), "Couldn't save your vote. Check your connection and try again.");
+    const ok = await attempt(() => setVote(formData), "Couldn't save your vote. Check your connection and try again.");
+    opts?.onVote?.({ id, next: previous === value ? 0 : value, ok });
   }
 
   async function removePost(id: number, formData: FormData) {
