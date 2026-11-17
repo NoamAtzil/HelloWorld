@@ -13,6 +13,7 @@
 //  - Assets are small AAC files decoded once, so effects start instantly.
 
 export type SoundName =
+  | "h_masterpiece" | "h_shimmer" | "h_spot" | "h_tap" | "h_pip"
   | "d_curtain" | "d_sting" | "d_stamp" | "d_drop" | "d_applause" | "d_vote" | "d_drumroll" | "d_fanfare" | "d_chime" | "d_pop"
   | "ui_on" | "whoosh_in" | "vs_hit" | "sting" | "morph" | "windup" | "punch" | "whoosh_up"
   | "launch" | "spin" | "kick" | "fly_away" | "poof" | "hammer_swing" | "bonk" | "boing"
@@ -20,13 +21,14 @@ export type SoundName =
   | "v_get_ready" | "v_fight" | "v_finish_him" | "v_ko" | "v_wins" | "v_next" | "v_destruction";
 
 // Two groups, loaded separately: Arena visitors never download the Daily Drop sounds, and vice versa.
-export type SoundGroup = "arena" | "drop";
+export type SoundGroup = "arena" | "drop" | "hall";
 export const SOUND_GROUPS: Record<SoundGroup, SoundName[]> = {
   arena: [
     "ui_on", "whoosh_in", "vs_hit", "sting", "morph", "windup", "punch", "whoosh_up", "launch", "spin", "kick",
     "fly_away", "poof", "hammer_swing", "bonk", "boing", "land", "fanfare", "crowd", "twinkle", "ko_hit", "ring",
     "music", "riser", "fight_boom", "v_get_ready", "v_fight", "v_finish_him", "v_ko", "v_wins", "v_next", "v_destruction",
   ],
+  hall: ["ui_on", "h_masterpiece", "h_shimmer", "h_spot", "h_tap", "h_pip"],
   drop: ["ui_on", "d_curtain", "d_sting", "d_stamp", "d_drop", "d_applause", "d_vote", "d_drumroll", "d_fanfare", "d_chime", "d_pop"],
 };
 export const SOUND_NAMES: SoundName[] = [...new Set([...SOUND_GROUPS.arena, ...SOUND_GROUPS.drop])];
@@ -36,7 +38,7 @@ type Bus = "voice" | "sfx" | "music";
 // How long each announcer line is actually spoken (the file also holds a reverb tail,
 // which may ring under the next line; only speech is never talked over).
 const SPEECH_SECONDS: Partial<Record<SoundName, number>> = {
-  v_get_ready: 2.8, v_fight: 1.4, v_finish_him: 1.7, v_ko: 1.35, v_wins: 1.75, v_next: 1.65, v_destruction: 1.95,
+  v_get_ready: 2.8, h_masterpiece: 3.9, v_fight: 1.4, v_finish_him: 1.7, v_ko: 1.35, v_wins: 1.75, v_next: 1.65, v_destruction: 1.95,
 };
 // Announcer prominent, effects a little quieter, music subtle.
 const BUS_GAIN: Record<Bus, number> = { voice: 1.0, sfx: 0.52, music: 0.11 };

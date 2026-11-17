@@ -10,6 +10,7 @@ import {
   dropGuidance,
   dropVoteGuidance,
   winnerGuidance,
+  hallGuidance,
   feedGuidance,
   isQuotaMessage,
   studioGuidance,
@@ -136,4 +137,13 @@ test("voting reactions and the winner awards", () => {
   assert.equal(winnerGuidance({ phase: "none" }).title, "No winner yesterday");
   assert.match(winnerGuidance({ phase: "open", author: "Ava" }).line, /Ava/);
   assert.equal(winnerGuidance({ phase: "drum" }).mood, "inspired");
+});
+
+test("the museum curator only talks about what the Hall really contains", () => {
+  assert.equal(hallGuidance({ captions: 0, creators: 0 }).title, "The galleries are empty");
+  assert.equal(hallGuidance({ captions: 3, creators: 2 }).mood, "proud");
+  assert.equal(hallGuidance({ captions: 3, creators: 2, doing: "masterpiece" }).mood, "inspired");
+  assert.match(hallGuidance({ captions: 3, creators: 2, doing: "viewing", creator: "Ava" }).line, /Ava/);
+  // a podium with only creators (no captions yet) is not "empty"
+  assert.notEqual(hallGuidance({ captions: 0, creators: 1 }).title, "The galleries are empty");
 });

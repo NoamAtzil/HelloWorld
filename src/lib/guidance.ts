@@ -180,6 +180,23 @@ export function feedGuidance(s: { posts: number; voice: string | null }): Guidan
 }
 
 export const HALL_GUIDANCE: Guidance = { mood: "proud", title: "Hall of Fame", line: "The captions, battles and creators that landed best." };
+
+export type HallState = {
+  /** Real counts from the leaderboards. */
+  captions: number;
+  creators: number;
+  /** What the visitor is doing right now. */
+  doing?: "idle" | "viewing" | "masterpiece";
+  creator?: string;
+};
+
+/** The curator's lines: always about what the Hall really contains. */
+export function hallGuidance(s: HallState): Guidance {
+  if (s.doing === "masterpiece") return { mood: "inspired", title: "Ah, the masterpiece", line: "Please, no flash photography." };
+  if (s.doing === "viewing") return { mood: "curious", title: "A connoisseur", line: s.creator ? `A fine choice. Credit to ${s.creator}.` : "A fine choice. Take your time." };
+  if (s.captions === 0 && s.creators === 0) return { mood: "idle", title: "The galleries are empty", line: "Nothing qualifies yet. Vote and battle, and I'll hang the first exhibit." };
+  return { mood: "proud", title: "The Hall of Fame", line: "Welcome to the Museum of Legendary Comedy. Mind the exhibits." };
+}
 export const LOGIN_GUIDANCE: Guidance = { mood: "curious", title: "Welcome", line: "Sign in with Google and I'll remember your captions." };
 export const ONBOARDING_GUIDANCE: Guidance = { mood: "curious", title: "One last thing", line: "What should I call you? First and last name, that's all." };
 

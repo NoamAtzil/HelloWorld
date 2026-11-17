@@ -511,6 +511,59 @@ def d_pop():
     return peak_norm(fade(y, 0.0005, 0.08), 0.8)
 S["d_pop"] = d_pop
 
+# ----------------------------------------------------------------- Hall of Fame ("the museum")
+def h_shimmer():
+    """Gold shimmer: a swell of rising bells over glittering air."""
+    n = 1.7; t = T(n); y = np.zeros_like(t)
+    for k in range(11):
+        f = 1046.5 * (2 ** (k / 7.0)); place(y, bell(f, 0.7, 6, ((1, 1), (2.0, .3), (3.0, .15))), 0.05 + k * 0.07, 0.5 + 0.04 * k)
+    y += hp(noise(n), 5800) * np.sin(np.pi * np.clip(t / n, 0, 1)) ** 2 * 0.1
+    y += tone(220, 440, n) * np.sin(np.pi * np.clip(t / n, 0, 1)) * 0.08
+    return peak_norm(fade(reverb(y, 1.0, 0.25), 0.02, 0.35), 0.75)
+S["h_shimmer"] = h_shimmer
+
+def h_spot():
+    """A stage light thunking on: a soft clunk and a short rising hum."""
+    n = 0.8; t = T(n)
+    y = tone(95, 52, n) * np.exp(-t / 0.07) * 0.8 + lp(noise(n), 700) * np.exp(-t / 0.04) * 0.6
+    hum = tone_f(110 + 70 * (1 - np.exp(-t / 0.2))) * np.where(t > 0.04, np.exp(-(t - 0.04) / 0.45), 0) * 0.35
+    return peak_norm(fade(reverb(y + hum, 0.5, 0.15), 0.001, 0.12), 0.78)
+S["h_spot"] = h_spot
+
+def h_tap():
+    """Opening an exhibit: a polite tok and a tiny bell."""
+    n = 0.4; t = T(n)
+    y = tone(420, 240, n) * np.exp(-t / 0.03) * 0.8 + bp(noise(n), 1200, 3500) * np.exp(-t / 0.01) * 0.4
+    place(y, bell(1568, 0.3, 11, ((1, 1), (2.76, .25))), 0.03, 0.5)
+    return peak_norm(fade(y, 0.0005, 0.06), 0.7)
+S["h_tap"] = h_tap
+
+def h_pip():
+    """The curator's tiny delighted chirp."""
+    n = 0.3; t = T(n)
+    f = 900 + 700 * np.sin(np.pi * np.clip(t / 0.18, 0, 1)) ** 0.8
+    y = tone_f(f) * np.exp(-t / 0.09) * np.minimum(t / 0.004, 1)
+    return peak_norm(fade(y, 0.001, 0.04), 0.6)
+S["h_pip"] = h_pip
+
+def render_museum_voice(text):
+    """A refined, pompous museum announcer: a British voice, lightly deepened, in a marble hall."""
+    with tempfile.TemporaryDirectory() as d:
+        fn = os.path.join(d, "v.wav")
+        subprocess.run(["say", "-v", "Daniel", "-o", fn, "--data-format=LEI16@22050", text], check=True)
+        sr, x = wf.read(fn)
+    x = x.astype(np.float64) / 32768.0
+    idx = np.where(np.abs(x) > 0.01)[0]; x = x[max(0, idx[0] - 600): idx[-1] + 900]
+    x = ss.resample_poly(x, 2, 1)
+    x = fade(pitch_shift(x, 2 ** (-2.0 / 12), 0.97), 0.003, 0.05)
+    x = hp(x, 70)
+    y = x + 0.3 * lp(x, 220)                                       # a little chest
+    y += 0.18 * bp(sat(y, 2), 1500, 4200)                          # clarity
+    y = sat(y * 1.2, 1.8)
+    y = echo(y, 0.16, 0.14)
+    y = reverb(y, rt=1.5, wet=0.3, damp=4200)                      # a big marble hall
+    return peak_norm(fade(y, 0.002, 0.12), 0.92)
+
 # ----------------------------------------------------------------- write out
 def write_m4a(name, x, kbps):
     os.makedirs(OUT, exist_ok=True)
@@ -533,6 +586,10 @@ if __name__ == "__main__":
         if only and key not in only: continue
         x = render_voice(key, text); size = write_m4a(key, x, 96); total += size
         rows.append((key, len(x) / SR, float(np.max(np.abs(x))), float(np.sqrt(np.mean(x ** 2))), size))
+    if not only or "h_masterpiece" in only:
+        x = render_museum_voice("[[rate 172]] Ladies and gentlemen. [[slnc 320]] A masterpiece [[slnc 110]] of questionable humor.")
+        size = write_m4a("h_masterpiece", x, 96); total += size
+        rows.append(("h_masterpiece", len(x) / SR, float(np.max(np.abs(x))), float(np.sqrt(np.mean(x ** 2))), size))
     print(f"{'name':16}{'sec':>6}{'peak':>7}{'rms':>7}{'bytes':>9}")
     for r in rows: print(f"{r[0]:16}{r[1]:6.2f}{r[2]:7.2f}{r[3]:7.3f}{r[4]:9d}")
     print("total bytes:", total)

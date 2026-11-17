@@ -16,7 +16,7 @@ const MOUTH: Record<Mood, "neutral" | "o" | "smirk" | "grin" | "worry"> = {
 // and a quote mark on its belly. Rendered with layered gradients (rim light,
 // specular, soft contact shadow) for a gentle 3D look. All expression is CSS,
 // driven by `mood` (see studio.css), so it costs no JavaScript at runtime.
-export function Creature({ mood = "idle", className = "" }: { mood?: Mood; className?: string }) {
+export function Creature({ mood = "idle", className = "", bowtie = false }: { mood?: Mood; className?: string; /** An optional little bow tie (the Hall of Fame curator). The creature is otherwise unchanged. */ bowtie?: boolean }) {
   const u = `cr${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const g = (k: string) => `url(#${u}${k})`;
 
@@ -89,6 +89,14 @@ export function Creature({ mood = "idle", className = "" }: { mood?: Mood; class
           <text x="100" y="196" textAnchor="middle" fontFamily="var(--font-fraunces), Georgia, serif" fontSize="62" fontWeight="700" fill="#e98946" opacity=".5">&rdquo;</text>
           <g clipPath={g("body")}><ellipse cx="62" cy="72" rx="30" ry="6.5" transform="rotate(-54 62 72)" fill={g("spec")} opacity=".75" /></g>
 
+          {bowtie && (
+            <g className="cr-bowtie">
+              <path d="M100 160L71 145Q64 160 71 175Z" fill="#8e1f40" stroke="#4a0d22" strokeWidth="2.4" strokeLinejoin="round" />
+              <path d="M100 160L129 145Q136 160 129 175Z" fill="#8e1f40" stroke="#4a0d22" strokeWidth="2.4" strokeLinejoin="round" />
+              <path d="M76 152L94 158M124 152L106 158" stroke="#d65a80" strokeWidth="2.2" strokeLinecap="round" opacity=".7" />
+              <circle cx="100" cy="160" r="7" fill="#f8dc8a" stroke="#9b6b12" strokeWidth="2.2" />
+            </g>
+          )}
           <g className="cr-arm l"><ellipse cx="29" cy="138" rx="11" ry="17" transform="rotate(14 29 138)" fill={g("l")} /></g>
           <g className="cr-arm r"><ellipse cx="171" cy="134" rx="11" ry="17" transform="rotate(-14 171 134)" fill={g("l")} /></g>
 
